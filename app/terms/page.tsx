@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/table"
 import { TermCreateDialog } from "@/app/terms/_components/term-create-dialog"
 import { prisma } from "@/lib/prisma/prisma"
+import Link from "next/link"
 
 function formatDate(date: Date) {
   const year = date.getFullYear()
@@ -78,12 +79,38 @@ export default async function TermsPage() {
                   </TableRow>
                 ) : (
                   terms.map((term) => (
-                    <TableRow key={term.id}>
-                      <TableCell className="font-medium">{term.name}</TableCell>
-                      <TableCell>{formatDate(term.startsAt)}</TableCell>
-                      <TableCell>{formatDate(term.endsAt)}</TableCell>
+                    <TableRow key={term.id} className="cursor-pointer">
+                      <TableCell className="font-medium">
+                        <Link
+                          className="block w-full"
+                          href={`/terms/${term.id}`}
+                        >
+                          {term.name}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          className="block w-full"
+                          href={`/terms/${term.id}`}
+                        >
+                          {formatDate(term.startsAt)}
+                        </Link>
+                      </TableCell>
+                      <TableCell>
+                        <Link
+                          className="block w-full"
+                          href={`/terms/${term.id}`}
+                        >
+                          {formatDate(term.endsAt)}
+                        </Link>
+                      </TableCell>
                       <TableCell className="text-right">
-                        {calculateWeeks(term.startsAt, term.endsAt)} 週
+                        <Link
+                          className="block w-full text-right"
+                          href={`/terms/${term.id}`}
+                        >
+                          {calculateWeeks(term.startsAt, term.endsAt)} 週
+                        </Link>
                       </TableCell>
                     </TableRow>
                   ))
