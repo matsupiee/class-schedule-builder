@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeftIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma/prisma";
@@ -82,23 +83,24 @@ export default async function TimetableEditPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+        <div className="flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link href={`/terms/${termId}`}>
+              <ChevronLeftIcon className="h-5 w-5" />
+              <span className="sr-only">ダッシュボードへ戻る</span>
+            </Link>
+          </Button>
+          <div className="flex-1">
             <p className="text-muted-foreground text-sm">時間割編集</p>
             <h1 className="text-2xl font-semibold tracking-tight">
               {timetablePlan.name}
             </h1>
           </div>
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href={`/terms/${termId}/timetables`}>
-                一覧に戻る
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/terms/${termId}`}>ダッシュボードへ戻る</Link>
-            </Button>
-          </div>
+          <Button asChild variant="outline">
+            <Link href={`/terms/${termId}/timetables`}>
+              一覧に戻る
+            </Link>
+          </Button>
         </div>
 
         <TimetableEditClient

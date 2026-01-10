@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronLeftIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { prisma } from "@/lib/prisma/prisma";
@@ -52,16 +53,19 @@ export default async function RequirementsPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
+        <div className="flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link href={`/terms/${term.id}`}>
+              <ChevronLeftIcon className="h-5 w-5" />
+              <span className="sr-only">ダッシュボードへ戻る</span>
+            </Link>
+          </Button>
+          <div className="flex-1">
             <p className="text-muted-foreground text-sm">法定の必要授業数</p>
             <h1 className="text-2xl font-semibold tracking-tight">
               {term.name}
             </h1>
           </div>
-          <Button asChild variant="outline">
-            <Link href={`/terms/${term.id}`}>ダッシュボードへ戻る</Link>
-          </Button>
         </div>
 
         {allSubjects.length === 0 ? (

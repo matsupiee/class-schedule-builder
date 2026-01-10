@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { ChevronLeftIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -41,9 +42,17 @@ export default async function TermDashboardPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-        <div>
-          <p className="text-muted-foreground text-sm">学期ダッシュボード</p>
-          <h1 className="text-2xl font-semibold tracking-tight">{term.name}</h1>
+        <div className="flex items-center gap-4">
+          <Button asChild variant="ghost" size="icon">
+            <Link href="/terms">
+              <ChevronLeftIcon className="h-5 w-5" />
+              <span className="sr-only">学期一覧へ戻る</span>
+            </Link>
+          </Button>
+          <div className="flex-1">
+            <p className="text-muted-foreground text-sm">学期ダッシュボード</p>
+            <h1 className="text-2xl font-semibold tracking-tight">{term.name}</h1>
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
