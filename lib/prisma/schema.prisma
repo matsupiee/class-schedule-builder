@@ -1,0 +1,151 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+    provider = "prisma-client"
+    output   = "../../generated/prisma"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model Subject {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    schoolId      String
+    name          String // "国語"
+    isSpecialist  Boolean @default(false) // 音楽/体育など（専科想定）
+    defaultRoomId String?
+
+    timetablePlanSlots   TimetablePlanSlot[]
+    requiredLessonCounts RequiredLessonCount[]
+    fixedTimetableSlots  FixedTimetableSlot[]
+
+    @@unique([schoolId, name])
+}
+
+model Term {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    name String // "1学期" etc
+
+    startsAt DateTime // 開始日時
+    endsAt   DateTime // 終了日時
+
+    requiredLessonCounts RequiredLessonCount[]
+    timetablePlans       TimetablePlan[]
+    calendarDays         CalendarDay[]
+    fixedTimetableSlots  FixedTimetableSlot[]
+}
+
+enum DayType {
+    NORMAL
+    CLOSED // 休日
+    HOLIDAY // 祝日
+    SCHOOL_EVENT // 学校行事(運動会など)
+}
+
+model CalendarDay {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    termId  String
+    date    DateTime @unique
+    title   String? // 行事名など
+    dayType DayType
+
+    // その日のコマ数
+    slotCount Int
+
+    term     Term      @relation(fields: [termId], references: [id])
+    daySlots DaySlot[]
+}
+
+model DaySlot {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    calendarDayId  String
+    daySlotIndex   Int
+    // 授業として使えないコマの場合はここに値が入る
+    disabledReason String?
+
+    calendarDay        CalendarDay         @relation(fields: [calendarDayId], references: [id])
+    timetablePlanSlots TimetablePlanSlot[]
+
+    @@unique([calendarDayId, daySlotIndex])
+}
+
+// 法定の必要授業数
+model RequiredLessonCount {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    termId        String
+    subjectId     String
+    requiredCount Int
+
+    term    Term    @relation(fields: [termId], references: [id])
+    subject Subject @relation(fields: [subjectId], references: [id])
+
+    @@unique([termId, subjectId])
+}
+
+// 固定時間割
+model FixedTimetableSlot {
+    id String @id @default(cuid())
+
+    termId String
+
+    weekday      Int // 1=Mon..7
+    daySlotIndex Int // 1..N
+
+    subjectId String
+
+    name String? // "基本固定時間割"（グルーピング用）
+    note String? // 備考
+
+    term    Term    @relation(fields: [termId], references: [id])
+    subject Subject @relation(fields: [subjectId], references: [id])
+
+    @@unique([termId, weekday, daySlotIndex])
+}
+
+model TimetablePlan {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    termId String
+    name   String
+
+    term               Term                @relation(fields: [termId], references: [id])
+    timetablePlanSlots TimetablePlanSlot[]
+}
+
+model TimetablePlanSlot {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    timetablePlanId String
+    daySlotId       String
+    subjectId       String
+
+    timeTablePlan TimetablePlan @relation(fields: [timetablePlanId], references: [id])
+    daySlot       DaySlot       @relation(fields: [daySlotId], references: [id])
+    subject       Subject       @relation(fields: [subjectId], references: [id])
+
+    @@unique([timetablePlanId, daySlotId])
+}
