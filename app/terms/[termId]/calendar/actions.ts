@@ -15,7 +15,15 @@ function toUtcDate(dateValue: string) {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
-export async function saveCalendarDay(formData: FormData) {
+export type SaveCalendarDayState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+};
+
+export async function saveCalendarDay(
+  _prevState: SaveCalendarDayState,
+  formData: FormData
+): Promise<SaveCalendarDayState> {
   const termId = String(formData.get("termId") ?? "");
   const dateValue = String(formData.get("date") ?? "");
   const dayTypeValue = String(formData.get("dayType") ?? "NORMAL");
@@ -27,70 +35,76 @@ export async function saveCalendarDay(formData: FormData) {
     .filter((value) => Number.isInteger(value) && value > 0);
 
   if (!termId || !dateValue) {
-    return;
+    return { status: "error", message: "必須項目が不足しています。" };
   }
 
   if (!DAY_TYPES.includes(dayTypeValue as (typeof DAY_TYPES)[number])) {
-    return;
+    return { status: "error", message: "無効な日種別です。" };
   }
 
   if (!Number.isInteger(slotCountValue) || slotCountValue < 0) {
-    return;
+    return { status: "error", message: "無効なコマ数です。" };
   }
 
   const date = toUtcDate(dateValue);
   if (Number.isNaN(date.getTime())) {
-    return;
+    return { status: "error", message: "無効な日付です。" };
   }
 
-  await prisma.$transaction(async (tx) => {
-    const existing = await tx.calendarDay.findUnique({
-      where: {
-        termId_date: {
-          termId,
-          date,
-        },
-      },
-    });
-
-    const calendarDay = existing
-      ? await tx.calendarDay.update({
-          where: { id: existing.id },
-          data: {
-            dayType: dayTypeValue as DayType,
-            slotCount: slotCountValue,
-            title: titleValue || null,
-          },
-        })
-      : await tx.calendarDay.create({
-          data: {
+  try {
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.calendarDay.findUnique({
+        where: {
+          termId_date: {
             termId,
             date,
-            dayType: dayTypeValue as DayType,
-            slotCount: slotCountValue,
-            title: titleValue || null,
           },
-        });
+        },
+      });
 
-    await tx.daySlot.deleteMany({
-      where: { calendarDayId: calendarDay.id },
+      const calendarDay = existing
+        ? await tx.calendarDay.update({
+            where: { id: existing.id },
+            data: {
+              dayType: dayTypeValue as DayType,
+              slotCount: slotCountValue,
+              title: titleValue || null,
+            },
+          })
+        : await tx.calendarDay.create({
+            data: {
+              termId,
+              date,
+              dayType: dayTypeValue as DayType,
+              slotCount: slotCountValue,
+              title: titleValue || null,
+            },
+          });
+
+      await tx.daySlot.deleteMany({
+        where: { calendarDayId: calendarDay.id },
+      });
+
+      if (slotCountValue > 0) {
+        await tx.daySlot.createMany({
+          data: Array.from({ length: slotCountValue }, (_, index) => {
+            const daySlotIndex = index + 1;
+            return {
+              calendarDayId: calendarDay.id,
+              daySlotIndex,
+              disabledReason: disabledSlots.includes(daySlotIndex)
+                ? "manual"
+                : null,
+            };
+          }),
+        });
+      }
     });
 
-    if (slotCountValue > 0) {
-      await tx.daySlot.createMany({
-        data: Array.from({ length: slotCountValue }, (_, index) => {
-          const daySlotIndex = index + 1;
-          return {
-            calendarDayId: calendarDay.id,
-            daySlotIndex,
-            disabledReason: disabledSlots.includes(daySlotIndex)
-              ? "manual"
-              : null,
-          };
-        }),
-      });
-    }
-  });
-
-  revalidatePath(`/terms/${termId}/calendar`);
+    revalidatePath(`/terms/${termId}/calendar`);
+    return { status: "success" };
+  } catch (error) {
+    console.error("Failed to save calendar day:", error);
+    return { status: "error", message: "保存に失敗しました。" };
+  }
 }

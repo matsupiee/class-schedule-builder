@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useActionState, useEffect, useMemo, useRef, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
-import { saveCalendarDay } from "../actions"
+import {
+  saveCalendarDay,
+  type SaveCalendarDayState,
+} from "../actions"
 
 const dayTypeOptions = [
   { value: "NORMAL", label: "通常日" },
@@ -63,6 +66,12 @@ export function TermCalendarClient({
   const [slotCount, setSlotCount] = useState(6)
   const [title, setTitle] = useState("")
   const [disabledSlots, setDisabledSlots] = useState<Set<number>>(new Set())
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  const initialState: SaveCalendarDayState = {
+    status: "idle",
+  }
+  const [state, formAction] = useActionState(saveCalendarDay, initialState)
 
   const slotList = useMemo(
     () => Array.from({ length: slotCount }, (_, index) => index + 1),
@@ -150,7 +159,14 @@ export function TermCalendarClient({
     return () => {
       cancelled = true
     }
-  }, [selectedDateValue, termId])
+  }, [selectedDateValue, termId, refreshKey])
+
+  // 保存成功時にデータを再取得
+  useEffect(() => {
+    if (state.status === "success") {
+      setRefreshKey((prev) => prev + 1)
+    }
+  }, [state.status])
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -218,7 +234,7 @@ export function TermCalendarClient({
             <CardDescription>{selectedLabel}</CardDescription>
           </CardHeader>
           <CardContent>
-            <form action={saveCalendarDay} className="grid gap-5">
+            <form action={formAction} className="grid gap-5">
               <input type="hidden" name="termId" value={termId} />
               <input type="hidden" name="date" value={selectedDateValue} />
               <input type="hidden" name="dayType" value={dayType} />

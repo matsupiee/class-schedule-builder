@@ -116,7 +116,7 @@ export default async function TermDashboardPage({ params }: PageProps) {
             <Button asChild variant="outline">
               <Link href={`/terms/${term.id}/fixed-timetable`}>固定時間割</Link>
             </Button>
-            <Button asChild>
+            <Button asChild variant="outline">
               <Link href={`/terms/${term.id}/timetables`}>時間割作成</Link>
             </Button>
           </CardContent>
