@@ -18,16 +18,11 @@ model Subject {
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now()) @updatedAt
 
-    schoolId      String
     name          String // "国語"
-    isSpecialist  Boolean @default(false) // 音楽/体育など（専科想定）
-    defaultRoomId String?
 
     timetablePlanSlots   TimetablePlanSlot[]
     requiredLessonCounts RequiredLessonCount[]
     fixedTimetableSlots  FixedTimetableSlot[]
-
-    @@unique([schoolId, name])
 }
 
 model Term {
@@ -71,7 +66,7 @@ model CalendarDay {
     updatedAt DateTime @default(now()) @updatedAt
 
     termId  String
-    date    DateTime @unique
+    date    DateTime
     title   String? // 行事名など
     dayType DayType
 
@@ -80,6 +75,8 @@ model CalendarDay {
 
     term     Term      @relation(fields: [termId], references: [id])
     daySlots DaySlot[]
+
+    @@unique([termId, date])
 }
 
 model DaySlot {

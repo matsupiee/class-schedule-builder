@@ -17,6 +17,8 @@
 /terms/[termId]/timetables  
 /terms/[termId]/timetables/[timetableId]
 
+/subjects
+
 ---
 
 ## 1. 学期一覧
@@ -77,8 +79,7 @@
 
 **科目ごとの授業数設定**
 
-- クラス × 科目 ごとの必要授業数
-- 予備時数（任意）
+- 科目 ごとの必要授業数
 - 集計表示
   - 必要コマ数 合計
   - 授業可能コマ数 合計
