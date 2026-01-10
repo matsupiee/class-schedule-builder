@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -77,6 +78,7 @@ export function TimetablesClient({
   requiredLessonCounts,
   planStats,
 }: TimetablesClientProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const initialState: CreateTimetablePlanState = {
     status: "idle",
@@ -189,7 +191,20 @@ export function TimetablesClient({
               </TableHeader>
               <TableBody>
                 {timetablePlans.map((plan) => (
-                  <TableRow key={plan.id}>
+                  <TableRow
+                    key={plan.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={(e) => {
+                      // ボタンがクリックされた場合は行のクリックを無視
+                      if (
+                        (e.target as HTMLElement).closest("button") ||
+                        (e.target as HTMLElement).closest("a")
+                      ) {
+                        return;
+                      }
+                      router.push(`/terms/${termId}/timetables/${plan.id}`);
+                    }}
+                  >
                     <TableCell className="font-medium">{plan.name}</TableCell>
                     <TableCell>
                       {plan.createdAt.toLocaleDateString("ja-JP")}
@@ -204,7 +219,10 @@ export function TimetablesClient({
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => handleDelete(plan.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(plan.id);
+                          }}
                         >
                           削除
                         </Button>

@@ -80,14 +80,22 @@ export default async function TimetableEditPage({ params }: PageProps) {
     }
   }
 
+  // 法定の必要授業数を取得
+  const requiredLessonCounts = await prisma.requiredLessonCount.findMany({
+    where: { termId },
+    include: {
+      subject: true,
+    },
+  });
+
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
         <div className="flex items-center gap-4">
           <Button asChild variant="ghost" size="icon">
-            <Link href={`/terms/${termId}`}>
+            <Link href={`/terms/${termId}/timetables`}>
               <ChevronLeftIcon className="h-5 w-5" />
-              <span className="sr-only">ダッシュボードへ戻る</span>
+              <span className="sr-only">時間割一覧へ戻る</span>
             </Link>
           </Button>
           <div className="flex-1">
@@ -96,19 +104,20 @@ export default async function TimetableEditPage({ params }: PageProps) {
               {timetablePlan.name}
             </h1>
           </div>
-          <Button asChild variant="outline">
-            <Link href={`/terms/${termId}/timetables`}>
-              一覧に戻る
-            </Link>
-          </Button>
         </div>
 
         <TimetableEditClient
+          termId={termId}
           timetablePlanId={timetablePlan.id}
           subjects={subjects}
           timetablePlanSlots={timetablePlan.timetablePlanSlots}
           weekdaySlotCounts={weekdaySlotCounts}
           weekdayOccurrences={weekdayOccurrences}
+          requiredLessonCounts={requiredLessonCounts.map((rlc) => ({
+            subjectId: rlc.subjectId,
+            subjectName: rlc.subject.name,
+            requiredCount: rlc.requiredCount,
+          }))}
         />
       </div>
     </main>

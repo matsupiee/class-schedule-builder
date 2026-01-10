@@ -45,12 +45,13 @@ export async function saveCalendarDay(formData: FormData) {
 
   await prisma.$transaction(async (tx) => {
     const existing = await tx.calendarDay.findUnique({
-      where: { date },
+      where: {
+        termId_date: {
+          termId,
+          date,
+        },
+      },
     });
-
-    if (existing && existing.termId !== termId) {
-      return;
-    }
 
     const calendarDay = existing
       ? await tx.calendarDay.update({

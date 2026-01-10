@@ -12,8 +12,9 @@ function toUtcDate(dateValue: string) {
 
 export async function GET(
   _request: Request,
-  { params }: { params: { termId: string } }
+  { params }: { params: Promise<{ termId: string }> }
 ) {
+  const { termId } = await params;
   const url = new URL(_request.url)
   const dateValue = url.searchParams.get("date") ?? ""
   const date = toUtcDate(dateValue)
@@ -23,7 +24,7 @@ export async function GET(
   }
 
   const calendarDay = await prisma.calendarDay.findFirst({
-    where: { termId: params.termId, date },
+    where: { termId, date },
     include: { daySlots: true },
   })
 
