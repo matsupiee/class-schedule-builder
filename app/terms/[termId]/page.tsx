@@ -39,6 +39,23 @@ export default async function TermDashboardPage({ params }: PageProps) {
     notFound()
   }
 
+  // 設定進捗の確認
+  const calendarDaysCount = await prisma.calendarDay.count({
+    where: { termId },
+  })
+
+  const requiredLessonCountsCount = await prisma.requiredLessonCount.count({
+    where: { termId },
+  })
+
+  const fixedTimetableSlotsCount = await prisma.fixedTimetableSlot.count({
+    where: { termId },
+  })
+
+  const timetablePlansCount = await prisma.timetablePlan.count({
+    where: { termId },
+  })
+
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -83,35 +100,51 @@ export default async function TermDashboardPage({ params }: PageProps) {
             <CardContent className="space-y-3 text-sm">
               <div className="flex items-center justify-between">
                 <span>授業日カレンダー</span>
-                <span className="text-muted-foreground">未設定</span>
+                {calendarDaysCount > 0 ? (
+                  <span className="text-green-600 font-medium">設定済み</span>
+                ) : (
+                  <span className="text-muted-foreground">未設定</span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span>法定授業数</span>
-                <span className="text-muted-foreground">未設定</span>
+                {requiredLessonCountsCount > 0 ? (
+                  <span className="text-green-600 font-medium">
+                    設定済み ({requiredLessonCountsCount}科目)
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">未設定</span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span>固定時間割</span>
-                <span className="text-muted-foreground">未設定</span>
+                {fixedTimetableSlotsCount > 0 ? (
+                  <span className="text-green-600 font-medium">
+                    設定済み ({fixedTimetableSlotsCount}コマ)
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">未設定</span>
+                )}
               </div>
               <div className="flex items-center justify-between">
                 <span>時間割作成</span>
-                <span className="text-muted-foreground">未作成</span>
+                {timetablePlansCount > 0 ? (
+                  <span className="text-green-600 font-medium">
+                    作成済み ({timetablePlansCount}件)
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">未作成</span>
+                )}
+              </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <Button asChild className="w-full">
+                  <Link href={`/terms/${term.id}/settings`}>設定を開く</Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>設定へ進む</CardTitle>
-            <CardDescription>順番に設定していきます。</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-3">
-            <Button asChild>
-              <Link href={`/terms/${term.id}/settings`}>設定を開く</Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </main>
   )
