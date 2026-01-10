@@ -10,6 +10,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { prisma } from "@/lib/prisma/prisma"
 
 function formatDate(date: Date) {
@@ -55,6 +63,51 @@ export default async function TermDashboardPage({ params }: PageProps) {
   const timetablePlansCount = await prisma.timetablePlan.count({
     where: { termId },
   })
+
+  // 最新の時間割プランを1つ取得
+  const latestTimetablePlan = await prisma.timetablePlan.findFirst({
+    where: { termId },
+    orderBy: { createdAt: "desc" },
+    include: {
+      timetablePlanSlots: {
+        include: {
+          subject: true,
+        },
+      },
+    },
+  })
+
+  // 週次ルールを取得して、各曜日の最大コマ数を計算
+  const weeklyDayRules = await prisma.weeklyDayRule.findMany({
+    where: { termId },
+  })
+
+  const weekdaySlotCounts: Record<number, number> = {}
+  for (const rule of weeklyDayRules) {
+    weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount
+  }
+
+  const maxSlotCount = Math.max(...Object.values(weekdaySlotCounts), 0)
+
+  // 時間割スロットをマップに変換
+  const slotsMap = new Map<string, { subjectId: string | null; subject: { id: string; name: string } | null }>()
+  if (latestTimetablePlan) {
+    for (const slot of latestTimetablePlan.timetablePlanSlots) {
+      const key = `${slot.weekday}-${slot.daySlotIndex}`
+      slotsMap.set(key, {
+        subjectId: slot.subjectId,
+        subject: slot.subject,
+      })
+    }
+  }
+
+  const weekdays = [
+    { value: 1, label: "月" },
+    { value: 2, label: "火" },
+    { value: 3, label: "水" },
+    { value: 4, label: "木" },
+    { value: 5, label: "金" },
+  ] as const
 
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
@@ -145,6 +198,97 @@ export default async function TermDashboardPage({ params }: PageProps) {
             </CardContent>
           </Card>
         </div>
+
+        {latestTimetablePlan && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>最新の時間割</CardTitle>
+                  <CardDescription>
+                    {latestTimetablePlan.name} -{" "}
+                    {latestTimetablePlan.createdAt.toLocaleDateString("ja-JP")}
+                  </CardDescription>
+                </div>
+                <Button asChild variant="outline" size="sm">
+                  <Link href={`/terms/${term.id}/timetables/${latestTimetablePlan.id}`}>
+                    編集
+                  </Link>
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {maxSlotCount > 0 ? (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[80px]">コマ</TableHead>
+                        {weekdays.map((weekday) => (
+                          <TableHead key={weekday.value}>{weekday.label}</TableHead>
+                        ))}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {Array.from({ length: maxSlotCount }, (_, index) => {
+                        const slot = index + 1
+                        return (
+                          <TableRow key={slot}>
+                            <TableCell className="font-medium">{slot} 限</TableCell>
+                            {weekdays.map((weekday) => {
+                              const key = `${weekday.value}-${slot}`
+                              const slotData = slotsMap.get(key)
+                              const isDisabled =
+                                weekdaySlotCounts[weekday.value] === undefined ||
+                                slot > weekdaySlotCounts[weekday.value]
+                              const isSet = slotData && slotData.subject !== null
+
+                              return (
+                                <TableCell
+                                  key={`${weekday.value}-${slot}`}
+                                  className={
+                                    isDisabled
+                                      ? "bg-muted/20"
+                                      : isSet
+                                        ? "bg-muted/30"
+                                        : ""
+                                  }
+                                >
+                                  {isDisabled ? (
+                                    <span className="text-muted-foreground text-xs">-</span>
+                                  ) : isSet ? (
+                                    <span className="font-medium text-sm">
+                                      {slotData?.subject?.name}
+                                    </span>
+                                  ) : (
+                                    <span className="text-muted-foreground text-xs">
+                                      未設定
+                                    </span>
+                                  )}
+                                </TableCell>
+                              )
+                            })}
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  まだスロットが設定されていません
+                </div>
+              )}
+              <div className="mt-4">
+                <Button asChild variant="outline" className="w-full">
+                  <Link href={`/terms/${term.id}/timetables`}>
+                    時間割一覧を見る
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </main>
   )
