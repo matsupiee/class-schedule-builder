@@ -10,8 +10,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -29,8 +27,8 @@ import {
 } from "@/components/ui/table";
 
 import {
-  deleteFixedTimetableSlot,
-  saveFixedTimetableSlot,
+  deleteTimetablePlanSlot,
+  saveTimetablePlanSlot,
 } from "../actions";
 
 const weekdays = [
@@ -46,44 +44,40 @@ type Subject = {
   name: string;
 };
 
-type FixedTimetableSlot = {
+type TimetablePlanSlot = {
   weekday: number;
   daySlotIndex: number;
-  subjectId: string;
-  subject: Subject;
-  name: string | null;
-  note: string | null;
+  subjectId: string | null;
+  subject: Subject | null;
 };
 
-type FixedTimetableClientProps = {
-  termId: string;
+type TimetableEditClientProps = {
+  timetablePlanId: string;
   subjects: Subject[];
-  fixedTimetableSlots: FixedTimetableSlot[];
+  timetablePlanSlots: TimetablePlanSlot[];
   weekdaySlotCounts: Record<number, number>;
 };
 
-export function FixedTimetableClient({
-  termId,
+export function TimetableEditClient({
+  timetablePlanId,
   subjects,
-  fixedTimetableSlots,
+  timetablePlanSlots,
   weekdaySlotCounts,
-}: FixedTimetableClientProps) {
+}: TimetableEditClientProps) {
   const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
   const [selectedDaySlotIndex, setSelectedDaySlotIndex] = useState<number | null>(
     null
   );
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
-  const [name, setName] = useState("");
-  const [note, setNote] = useState("");
 
-  const fixedSlotsMap = useMemo(() => {
-    const map = new Map<string, FixedTimetableSlot>();
-    for (const slot of fixedTimetableSlots) {
+  const slotsMap = useMemo(() => {
+    const map = new Map<string, TimetablePlanSlot>();
+    for (const slot of timetablePlanSlots) {
       const key = `${slot.weekday}-${slot.daySlotIndex}`;
       map.set(key, slot);
     }
     return map;
-  }, [fixedTimetableSlots]);
+  }, [timetablePlanSlots]);
 
   const maxSlotCount = useMemo(() => {
     return Math.max(...Object.values(weekdaySlotCounts), 0);
@@ -95,13 +89,11 @@ export function FixedTimetableClient({
 
   const handleCellClick = (weekday: number, daySlotIndex: number) => {
     const key = `${weekday}-${daySlotIndex}`;
-    const existingSlot = fixedSlotsMap.get(key);
+    const existingSlot = slotsMap.get(key);
 
     setSelectedWeekday(weekday);
     setSelectedDaySlotIndex(daySlotIndex);
     setSelectedSubjectId(existingSlot?.subjectId ?? "");
-    setName(existingSlot?.name ?? "");
-    setNote(existingSlot?.note ?? "");
   };
 
   const handleSave = async () => {
@@ -114,20 +106,16 @@ export function FixedTimetableClient({
     }
 
     const formData = new FormData();
-    formData.append("termId", termId);
+    formData.append("timetablePlanId", timetablePlanId);
     formData.append("weekday", String(selectedWeekday));
     formData.append("daySlotIndex", String(selectedDaySlotIndex));
     formData.append("subjectId", selectedSubjectId);
-    formData.append("name", name);
-    formData.append("note", note);
-    await saveFixedTimetableSlot(formData);
+    await saveTimetablePlanSlot(formData);
 
     // リセット
     setSelectedWeekday(null);
     setSelectedDaySlotIndex(null);
     setSelectedSubjectId("");
-    setName("");
-    setNote("");
   };
 
   const handleDelete = async () => {
@@ -136,30 +124,26 @@ export function FixedTimetableClient({
     }
 
     const formData = new FormData();
-    formData.append("termId", termId);
+    formData.append("timetablePlanId", timetablePlanId);
     formData.append("weekday", String(selectedWeekday));
     formData.append("daySlotIndex", String(selectedDaySlotIndex));
-    await deleteFixedTimetableSlot(formData);
+    await deleteTimetablePlanSlot(formData);
 
     // リセット
     setSelectedWeekday(null);
     setSelectedDaySlotIndex(null);
     setSelectedSubjectId("");
-    setName("");
-    setNote("");
   };
 
   const handleCancel = () => {
     setSelectedWeekday(null);
     setSelectedDaySlotIndex(null);
     setSelectedSubjectId("");
-    setName("");
-    setNote("");
   };
 
   const getSlotSubject = (weekday: number, daySlotIndex: number) => {
     const key = `${weekday}-${daySlotIndex}`;
-    return fixedSlotsMap.get(key);
+    return slotsMap.get(key);
   };
 
   return (
@@ -168,7 +152,7 @@ export function FixedTimetableClient({
         <CardHeader>
           <CardTitle>週次グリッド</CardTitle>
           <CardDescription>
-            曜日とコマごとの固定枠を設定します。セルをクリックして設定してください。
+            曜日とコマごとの授業を設定します。セルをクリックして設定してください。
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -193,7 +177,7 @@ export function FixedTimetableClient({
                     const isDisabled =
                       weekdaySlotCounts[weekday.value] === undefined ||
                       slot > weekdaySlotCounts[weekday.value];
-                    const isSet = slotSubject !== undefined;
+                    const isSet = slotSubject && slotSubject.subject !== null;
 
                     return (
                       <TableCell
@@ -212,15 +196,10 @@ export function FixedTimetableClient({
                         {isDisabled ? (
                           <span className="text-muted-foreground text-xs">-</span>
                         ) : isSet ? (
-                          <div className="flex flex-col items-center justify-center min-h-[32px] gap-1">
+                          <div className="flex items-center justify-center min-h-[32px]">
                             <span className="font-medium text-sm">
-                              {slotSubject.subject.name}
+                              {slotSubject?.subject?.name}
                             </span>
-                            {slotSubject.name && (
-                              <span className="text-xs text-muted-foreground">
-                                {slotSubject.name}
-                              </span>
-                            )}
                           </div>
                         ) : (
                           <div className="flex items-center justify-center min-h-[32px]">
@@ -241,7 +220,7 @@ export function FixedTimetableClient({
 
       <Card>
         <CardHeader>
-          <CardTitle>固定枠の詳細</CardTitle>
+          <CardTitle>授業の設定</CardTitle>
           <CardDescription>
             {selectedWeekday !== null && selectedDaySlotIndex !== null
               ? `${weekdays.find((w) => w.value === selectedWeekday)?.label}曜日 ${selectedDaySlotIndex}限の設定`
@@ -252,7 +231,7 @@ export function FixedTimetableClient({
           {selectedWeekday !== null && selectedDaySlotIndex !== null ? (
             <>
               <div className="grid gap-2">
-                <Label>科目</Label>
+                <label className="text-sm font-medium">科目</label>
                 <Select
                   value={selectedSubjectId}
                   onValueChange={setSelectedSubjectId}
@@ -268,24 +247,6 @@ export function FixedTimetableClient({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="fixed-name">グループ名（任意）</Label>
-                <Input
-                  id="fixed-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="例: 基本固定時間割"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="fixed-note">備考</Label>
-                <Input
-                  id="fixed-note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="例: 専科/場所固定"
-                />
               </div>
               <div className="flex gap-2">
                 <Button
@@ -311,7 +272,7 @@ export function FixedTimetableClient({
             </>
           ) : (
             <p className="text-muted-foreground text-sm">
-              グリッドのセルをクリックして固定枠を設定してください。
+              グリッドのセルをクリックして授業を設定してください。
             </p>
           )}
         </CardContent>

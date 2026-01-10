@@ -51,12 +51,19 @@ function buildCalendarDays(
   ) {
     const dayKey = toDateKey(current);
     const holidayName = holidayMap.get(dayKey);
-    const weekday = current.getUTCDay();
-    const isWeekend = weekday === 0 || weekday === 6;
+    const jsWeekday = current.getUTCDay(); // 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+    const isWeekend = jsWeekday === 0 || jsWeekday === 6;
+
+    // JavaScriptのweekdayをWeeklyDayRuleのweekdayに変換
+    // 0=日 → null, 1=月 → 1, 2=火 → 2, 3=水 → 3, 4=木 → 4, 5=金 → 5, 6=土 → null
+    const weekdayRule = jsWeekday >= 1 && jsWeekday <= 5 ? jsWeekday : null;
 
     let dayType: "NORMAL" | "WEEKLY_OFF" | "HOLIDAY" | "SCHOOL_EVENT" =
       "NORMAL";
-    let slotCount = weekdaySlotCounts[weekday] ?? WEEKDAY_DEFAULTS[1];
+    let slotCount =
+      weekdayRule !== null
+        ? weekdaySlotCounts[weekdayRule] ?? WEEKDAY_DEFAULTS[1]
+        : 0;
     let title: string | undefined;
 
     if (holidayName) {

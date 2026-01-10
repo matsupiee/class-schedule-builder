@@ -90,7 +90,6 @@ model DaySlot {
     disabledReason String?
 
     calendarDay        CalendarDay         @relation(fields: [calendarDayId], references: [id])
-    timetablePlanSlots TimetablePlanSlot[]
 
     @@unique([calendarDayId, daySlotIndex])
 }
@@ -149,12 +148,11 @@ model TimetablePlanSlot {
     updatedAt DateTime @default(now()) @updatedAt
 
     timetablePlanId String
-    daySlotId       String
-    subjectId       String
+    subjectId       String?
+     
+    weekday      Int // 1=Mon..7
+    daySlotIndex   Int
 
     timeTablePlan TimetablePlan @relation(fields: [timetablePlanId], references: [id])
-    daySlot       DaySlot       @relation(fields: [daySlotId], references: [id])
-    subject       Subject       @relation(fields: [subjectId], references: [id])
-
-    @@unique([timetablePlanId, daySlotId])
+    subject       Subject?       @relation(fields: [subjectId], references: [id])
 }
