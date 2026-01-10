@@ -88,3 +88,4 @@ export async function deleteFixedTimetableSlot(formData: FormData) {
   revalidatePath(`/terms/${termId}/fixed-timetable`);
 }
 
+

@@ -57,3 +57,4 @@ export async function deleteRequiredLessonCount(formData: FormData) {
   revalidatePath(`/terms/${termId}/requirements`);
 }
 
+

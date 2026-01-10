@@ -51,6 +51,34 @@ export default async function TimetableEditPage({ params }: PageProps) {
     weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount;
   }
 
+  // term中の各曜日の出現回数を計算
+  // CalendarDayから、dayTypeがNORMALまたはSCHOOL_EVENTの日を取得
+  const calendarDays = await prisma.calendarDay.findMany({
+    where: {
+      termId,
+      dayType: {
+        in: ["NORMAL", "SCHOOL_EVENT"],
+      },
+    },
+    include: {
+      daySlots: {
+        where: {
+          disabledReason: null,
+        },
+      },
+    },
+  });
+
+  // 各曜日の出現回数をカウント（JavaScriptのgetUTCDay()で0=日、1=月...）
+  const weekdayOccurrences: Record<number, number> = {};
+  for (const day of calendarDays) {
+    const jsWeekday = day.date.getUTCDay(); // 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+    // JavaScriptのweekdayをWeeklyDayRuleのweekdayに変換（1=月, 2=火, ...）
+    if (jsWeekday >= 1 && jsWeekday <= 5) {
+      weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
+    }
+  }
+
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -78,9 +106,11 @@ export default async function TimetableEditPage({ params }: PageProps) {
           subjects={subjects}
           timetablePlanSlots={timetablePlan.timetablePlanSlots}
           weekdaySlotCounts={weekdaySlotCounts}
+          weekdayOccurrences={weekdayOccurrences}
         />
       </div>
     </main>
   );
 }
+
 

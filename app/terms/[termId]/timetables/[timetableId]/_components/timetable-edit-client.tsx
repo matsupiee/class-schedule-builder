@@ -56,6 +56,7 @@ type TimetableEditClientProps = {
   subjects: Subject[];
   timetablePlanSlots: TimetablePlanSlot[];
   weekdaySlotCounts: Record<number, number>;
+  weekdayOccurrences: Record<number, number>;
 };
 
 export function TimetableEditClient({
@@ -63,6 +64,7 @@ export function TimetableEditClient({
   subjects,
   timetablePlanSlots,
   weekdaySlotCounts,
+  weekdayOccurrences,
 }: TimetableEditClientProps) {
   const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
   const [selectedDaySlotIndex, setSelectedDaySlotIndex] = useState<number | null>(
@@ -146,8 +148,24 @@ export function TimetableEditClient({
     return slotsMap.get(key);
   };
 
+  // 各科目の消化コマ数を計算
+  const subjectSlotCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const slot of timetablePlanSlots) {
+      if (slot.subjectId && slot.subject) {
+        const occurrences = weekdayOccurrences[slot.weekday] ?? 0;
+        const current = counts.get(slot.subjectId) ?? 0;
+        counts.set(slot.subjectId, current + occurrences);
+      }
+    }
+
+    return counts;
+  }, [timetablePlanSlots, weekdayOccurrences]);
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
+    <div className="grid gap-6">
+      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
       <Card>
         <CardHeader>
           <CardTitle>週次グリッド</CardTitle>
@@ -275,6 +293,51 @@ export function TimetableEditClient({
               グリッドのセルをクリックして授業を設定してください。
             </p>
           )}
+        </CardContent>
+      </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>科目ごとの消化コマ数</CardTitle>
+          <CardDescription>
+            この時間割プランで、term中に各科目が合計で何コマ消化できるかを表示します。
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>科目名</TableHead>
+                <TableHead className="text-right">消化コマ数</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {subjects.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    科目が登録されていません
+                  </TableCell>
+                </TableRow>
+              ) : (
+                subjects.map((subject) => {
+                  const count = subjectSlotCounts.get(subject.id) ?? 0;
+                  return (
+                    <TableRow key={subject.id}>
+                      <TableCell className="font-medium">{subject.name}</TableCell>
+                      <TableCell className="text-right">
+                        {count > 0 ? (
+                          <span className="font-semibold">{count} コマ</span>
+                        ) : (
+                          <span className="text-muted-foreground">0 コマ</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
