@@ -107,17 +107,8 @@ export default async function TermDashboardPage({ params }: PageProps) {
             <CardDescription>順番に設定していきます。</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            <Button asChild variant="outline">
-              <Link href={`/terms/${term.id}/calendar`}>授業日カレンダー</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/terms/${term.id}/requirements`}>法定授業数</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/terms/${term.id}/fixed-timetable`}>固定時間割</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`/terms/${term.id}/timetables`}>時間割作成</Link>
+            <Button asChild>
+              <Link href={`/terms/${term.id}/settings`}>設定を開く</Link>
             </Button>
           </CardContent>
         </Card>

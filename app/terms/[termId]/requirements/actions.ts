@@ -34,7 +34,7 @@ export async function saveRequiredLessonCount(formData: FormData) {
     },
   });
 
-  revalidatePath(`/terms/${termId}/requirements`);
+  revalidatePath(`/terms/${termId}/settings`);
 }
 
 export async function deleteRequiredLessonCount(formData: FormData) {
@@ -54,7 +54,5 @@ export async function deleteRequiredLessonCount(formData: FormData) {
     },
   });
 
-  revalidatePath(`/terms/${termId}/requirements`);
+  revalidatePath(`/terms/${termId}/settings`);
 }
-
-

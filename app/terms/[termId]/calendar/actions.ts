@@ -101,7 +101,7 @@ export async function saveCalendarDay(
       }
     });
 
-    revalidatePath(`/terms/${termId}/calendar`);
+    revalidatePath(`/terms/${termId}/settings`);
     return { status: "success" };
   } catch (error) {
     console.error("Failed to save calendar day:", error);

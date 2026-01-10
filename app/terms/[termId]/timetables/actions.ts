@@ -79,6 +79,7 @@ export async function createTimetablePlan(
     }
 
     revalidatePath(`/terms/${termId}/timetables`);
+    revalidatePath(`/terms/${termId}/settings`);
     return { status: "success" };
   } catch {
     return { status: "error", message: "作成に失敗しました。" };
@@ -98,4 +99,5 @@ export async function deleteTimetablePlan(formData: FormData) {
   });
 
   revalidatePath(`/terms/${termId}/timetables`);
+  revalidatePath(`/terms/${termId}/settings`);
 }

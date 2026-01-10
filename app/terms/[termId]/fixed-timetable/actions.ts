@@ -16,11 +16,7 @@ export async function saveFixedTimetableSlot(formData: FormData) {
     return;
   }
 
-  if (
-    !Number.isInteger(weekdayValue) ||
-    weekdayValue < 1 ||
-    weekdayValue > 7
-  ) {
+  if (!Number.isInteger(weekdayValue) || weekdayValue < 1 || weekdayValue > 7) {
     return;
   }
 
@@ -51,7 +47,7 @@ export async function saveFixedTimetableSlot(formData: FormData) {
     },
   });
 
-  revalidatePath(`/terms/${termId}/fixed-timetable`);
+  revalidatePath(`/terms/${termId}/settings`);
 }
 
 export async function deleteFixedTimetableSlot(formData: FormData) {
@@ -63,11 +59,7 @@ export async function deleteFixedTimetableSlot(formData: FormData) {
     return;
   }
 
-  if (
-    !Number.isInteger(weekdayValue) ||
-    weekdayValue < 1 ||
-    weekdayValue > 7
-  ) {
+  if (!Number.isInteger(weekdayValue) || weekdayValue < 1 || weekdayValue > 7) {
     return;
   }
 
@@ -85,7 +77,5 @@ export async function deleteFixedTimetableSlot(formData: FormData) {
     },
   });
 
-  revalidatePath(`/terms/${termId}/fixed-timetable`);
+  revalidatePath(`/terms/${termId}/settings`);
 }
-
-
