@@ -44,11 +44,23 @@ model Term {
     timetablePlans       TimetablePlan[]
     calendarDays         CalendarDay[]
     fixedTimetableSlots  FixedTimetableSlot[]
+    weeklyDayRules       WeeklyDayRule[]
+}
+
+model WeeklyDayRule {
+  id        String   @id @default(cuid())
+  termId    String
+  weekday   Int     // 1=Mon .. 5=Fri
+  defaultSlotCount Int // 曜日ごとにコマ数がデフォルトで決まっている
+
+  term      Term @relation(fields: [termId], references: [id])
+
+  @@unique([termId, weekday])
 }
 
 enum DayType {
     NORMAL
-    CLOSED // 休日
+    WEEKLY_OFF
     HOLIDAY // 祝日
     SCHOOL_EVENT // 学校行事(運動会など)
 }

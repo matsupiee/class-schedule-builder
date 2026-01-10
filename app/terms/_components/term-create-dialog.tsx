@@ -1,7 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { useFormState } from "react-dom"
+import { useActionState, useEffect, useRef, useState } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -25,7 +24,7 @@ const initialState: CreateTermState = {
 
 export function TermCreateDialog() {
   const [open, setOpen] = useState(false)
-  const [state, formAction] = useFormState(createTerm, initialState)
+  const [state, formAction] = useActionState(createTerm, initialState)
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
@@ -62,6 +61,66 @@ export function TermCreateDialog() {
           <div className="grid gap-2">
             <Label htmlFor="term-end">終了日</Label>
             <Input id="term-end" name="endsAt" type="date" required />
+          </div>
+          <div className="grid gap-2">
+            <Label>平日のデフォルトコマ数</Label>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="term-slot-mon">月曜</Label>
+                <Input
+                  id="term-slot-mon"
+                  name="defaultSlotCountMon"
+                  type="number"
+                  min={1}
+                  defaultValue={6}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="term-slot-tue">火曜</Label>
+                <Input
+                  id="term-slot-tue"
+                  name="defaultSlotCountTue"
+                  type="number"
+                  min={1}
+                  defaultValue={6}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="term-slot-wed">水曜</Label>
+                <Input
+                  id="term-slot-wed"
+                  name="defaultSlotCountWed"
+                  type="number"
+                  min={1}
+                  defaultValue={6}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="term-slot-thu">木曜</Label>
+                <Input
+                  id="term-slot-thu"
+                  name="defaultSlotCountThu"
+                  type="number"
+                  min={1}
+                  defaultValue={6}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="term-slot-fri">金曜</Label>
+                <Input
+                  id="term-slot-fri"
+                  name="defaultSlotCountFri"
+                  type="number"
+                  min={1}
+                  defaultValue={6}
+                  required
+                />
+              </div>
+            </div>
           </div>
           {state.status === "error" && state.message ? (
             <p className="text-destructive text-sm">{state.message}</p>
