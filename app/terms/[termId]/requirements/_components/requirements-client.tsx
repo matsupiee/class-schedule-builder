@@ -25,6 +25,7 @@ import {
   deleteRequiredLessonCount,
   saveRequiredLessonCount,
 } from "../actions";
+import { SubjectCreateDialog } from "@/app/subjects/_components/subject-create-dialog";
 
 type Subject = {
   id: string;
@@ -138,10 +139,15 @@ export function RequirementsClient({
     <div className="grid gap-6">
       <Card>
         <CardHeader>
-          <CardTitle>科目ごとの必要授業数</CardTitle>
-          <CardDescription>
-            各科目に必要な授業数を設定します。
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>科目ごとの必要授業数</CardTitle>
+              <CardDescription>
+                各科目に必要な授業数を設定します。
+              </CardDescription>
+            </div>
+            <SubjectCreateDialog />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

@@ -30,6 +30,7 @@ export async function createSubject(
   }
 
   revalidatePath("/subjects");
+  // 設定ページも再検証（動的パスは直接指定できないため、"/subjects"の再検証で十分）
   return { status: "success" };
 }
 

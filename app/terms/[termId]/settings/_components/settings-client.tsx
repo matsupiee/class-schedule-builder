@@ -1,7 +1,7 @@
 "use client";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 import { TermCalendarClient } from "@/app/terms/[termId]/calendar/_components/term-calendar-client";
 import { RequirementsClient } from "@/app/terms/[termId]/requirements/_components/requirements-client";
@@ -53,7 +53,7 @@ type SettingsClientProps = {
   termId: string;
   termStartsAtIso: string;
   termEndsAtIso: string;
-  holidays: Array<{ date: string; title: string }>;
+  calendarDays?: Array<{ date: string; title: string | null; dayType: string }>;
 
   subjects: Subject[];
   requiredLessonCounts: RequiredLessonCount[];
@@ -70,7 +70,7 @@ export function SettingsClient({
   termId,
   termStartsAtIso,
   termEndsAtIso,
-  holidays,
+  calendarDays = [],
   subjects,
   requiredLessonCounts,
   totalAvailableSlots,
@@ -93,7 +93,7 @@ export function SettingsClient({
                 startDate={termStartsAtIso}
                 endDate={termEndsAtIso}
                 termId={termId}
-                holidays={holidays}
+                calendarDays={calendarDays}
               />
             </AccordionContent>
           </AccordionItem>

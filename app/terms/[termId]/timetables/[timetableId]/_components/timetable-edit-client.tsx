@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { DownloadIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,6 +11,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -185,9 +192,39 @@ export function TimetableEditClient({
     await autoGenerateTimetable(formData);
   };
 
+  const handleExportPDF = () => {
+    window.open(`/terms/${termId}/timetables/${timetablePlanId}/export/pdf`, "_blank");
+  };
+
+  const handleExportExcel = () => {
+    window.open(`/terms/${termId}/timetables/${timetablePlanId}/export/excel`, "_blank");
+  };
+
+  const handleExportWord = () => {
+    window.open(`/terms/${termId}/timetables/${timetablePlanId}/export/word`, "_blank");
+  };
+
+  const handleExportRTF = () => {
+    window.open(`/terms/${termId}/timetables/${timetablePlanId}/export/rtf`, "_blank");
+  };
+
   return (
     <div className="grid gap-6">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline">
+              <DownloadIcon className="mr-2 h-4 w-4" />
+              エクスポート
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem onClick={handleExportPDF}>PDF</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportExcel}>Excel</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportWord}>Word</DropdownMenuItem>
+            <DropdownMenuItem onClick={handleExportRTF}>RTF（一太郎用）</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button onClick={handleAutoGenerate} variant="default">
           自動生成
         </Button>

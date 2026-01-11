@@ -15,6 +15,10 @@ const subjects = [
   "音楽",
   "体育",
   "図工",
+  "学活",
+  "書道",
+  "外国語活動",
+  "総合",
 ];
 
 async function main() {

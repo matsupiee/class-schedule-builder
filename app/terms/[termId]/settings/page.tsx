@@ -22,10 +22,10 @@ export default async function TermSettingsPage({ params }: PageProps) {
     notFound();
   }
 
-  const holidayDays = await prisma.calendarDay.findMany({
-    where: { termId, dayType: "HOLIDAY" },
-    orderBy: { date: "asc" },
-    select: { date: true, title: true },
+  // calendarDaysを取得（タイトル表示用）
+  const calendarDays = await prisma.calendarDay.findMany({
+    where: { termId },
+    select: { date: true, title: true, dayType: true },
   });
 
   const subjects = await prisma.subject.findMany({
@@ -131,9 +131,10 @@ export default async function TermSettingsPage({ params }: PageProps) {
           termId={termId}
           termStartsAtIso={term.startsAt.toISOString()}
           termEndsAtIso={term.endsAt.toISOString()}
-          holidays={holidayDays.map((holiday) => ({
-            date: holiday.date.toISOString(),
-            title: holiday.title ?? "祝日",
+          calendarDays={calendarDays.map((day) => ({
+            date: day.date.toISOString(),
+            title: day.title,
+            dayType: day.dayType,
           }))}
           subjects={subjects}
           requiredLessonCounts={requiredLessonCounts.map((rlc) => ({

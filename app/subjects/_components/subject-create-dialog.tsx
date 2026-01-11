@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,13 +30,16 @@ export function SubjectCreateDialog() {
   const [open, setOpen] = useState(false);
   const [state, formAction] = useActionState(createSubject, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     if (state.status === "success") {
       setOpen(false);
       formRef.current?.reset();
+      // 設定ページも再検証
+      router.refresh();
     }
-  }, [state.status]);
+  }, [state.status, router]);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
