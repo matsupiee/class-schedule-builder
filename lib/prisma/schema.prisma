@@ -22,6 +22,8 @@ model Subject {
 
     requiredLessonCounts RequiredLessonCount[]
     fixedTimetableSlots  FixedTimetableSlot[]
+    subjectUnits         SubjectUnit[]
+    actualTimetableSlots ActualTimetableSlot[] @relation("SubjectActualTimetableSlots")
 }
 
 model Term {
@@ -38,6 +40,7 @@ model Term {
     calendarDays         CalendarDay[]
     fixedTimetableSlots  FixedTimetableSlot[]
     weeklyDayRules       WeeklyDayRule[]
+    actualTimetableSlots ActualTimetableSlot[]
 }
 
 model WeeklyDayRule {
@@ -71,25 +74,10 @@ model CalendarDay {
     // その日のコマ数
     slotCount Int
 
-    term     Term      @relation(fields: [termId], references: [id])
-    daySlots DaySlot[]
+    term                 Term                  @relation(fields: [termId], references: [id])
+    actualTimetableSlots ActualTimetableSlot[]
 
     @@unique([termId, date])
-}
-
-model DaySlot {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @default(now()) @updatedAt
-
-    calendarDayId  String
-    daySlotIndex   Int
-    // 授業として使えないコマの場合はここに値が入る
-    disabledReason String?
-
-    calendarDay CalendarDay @relation(fields: [calendarDayId], references: [id])
-
-    @@unique([calendarDayId, daySlotIndex])
 }
 
 // 法定の必要授業数
@@ -126,4 +114,46 @@ model FixedTimetableSlot {
     subject Subject @relation(fields: [subjectId], references: [id])
 
     @@unique([termId, weekday, daySlotIndex])
+}
+
+// 科目ごとの単元
+model SubjectUnit {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    subjectId String
+    unitName  String // "ごんきつね"など
+    slotCount Int // その単元のコマ数（例：8）
+    order     Int // その科目内での順番（1, 2, 3...）
+
+    subject              Subject               @relation(fields: [subjectId], references: [id])
+    actualTimetableSlots ActualTimetableSlot[]
+
+    @@unique([subjectId, order])
+}
+
+// 実際の日付ベースの時間割スロット
+model ActualTimetableSlot {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @default(now()) @updatedAt
+
+    termId        String
+    calendarDayId String // 実際の日付
+    daySlotIndex  Int // その日のコマ番号
+
+    subjectId     String?
+    subjectUnitId String? // どの単元か
+    unitSlotIndex Int? // その単元内でのコマ番号（1, 2, 3...）
+
+    // 授業として使えないコマの場合はここに値が入る（DaySlotのdisabledReasonを統合）
+    disabledReason String?
+
+    term        Term         @relation(fields: [termId], references: [id])
+    calendarDay CalendarDay  @relation(fields: [calendarDayId], references: [id])
+    subject     Subject?     @relation("SubjectActualTimetableSlots", fields: [subjectId], references: [id])
+    subjectUnit SubjectUnit? @relation(fields: [subjectUnitId], references: [id])
+
+    @@unique([termId, calendarDayId, daySlotIndex])
 }

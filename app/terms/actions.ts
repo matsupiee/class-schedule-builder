@@ -169,11 +169,15 @@ export async function createTerm(
           data: calendarDay,
         });
         if (calendarDay.slotCount > 0) {
-          await tx.daySlot.createMany({
+          await tx.actualTimetableSlot.createMany({
             data: Array.from({ length: calendarDay.slotCount }, (_, index) => ({
+              termId: term.id,
               calendarDayId: created.id,
               daySlotIndex: index + 1,
               disabledReason: null,
+              subjectId: null,
+              subjectUnitId: null,
+              unitSlotIndex: null,
             })),
           });
         }

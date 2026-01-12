@@ -81,20 +81,24 @@ export async function saveCalendarDay(
             },
           });
 
-      await tx.daySlot.deleteMany({
+      await tx.actualTimetableSlot.deleteMany({
         where: { calendarDayId: calendarDay.id },
       });
 
       if (slotCountValue > 0) {
-        await tx.daySlot.createMany({
+        await tx.actualTimetableSlot.createMany({
           data: Array.from({ length: slotCountValue }, (_, index) => {
             const daySlotIndex = index + 1;
             return {
+              termId: calendarDay.termId,
               calendarDayId: calendarDay.id,
               daySlotIndex,
               disabledReason: disabledSlots.includes(daySlotIndex)
                 ? "manual"
                 : null,
+              subjectId: null,
+              subjectUnitId: null,
+              unitSlotIndex: null,
             };
           }),
         });

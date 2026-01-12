@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Card,
   CardAction,
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { SubjectCreateDialog } from "@/app/subjects/_components/subject-create-dialog";
 import { prisma } from "@/lib/prisma/prisma";
 

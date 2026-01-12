@@ -57,16 +57,16 @@ export default async function TermSettingsPage({
     include: { subject: true },
   });
 
-  const daySlots = await prisma.daySlot.findMany({
+  const actualTimetableSlots = await prisma.actualTimetableSlot.findMany({
     where: {
+      termId,
       calendarDay: {
-        termId,
         dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
       },
       disabledReason: null,
     },
   });
-  const totalAvailableSlots = daySlots.length;
+  const totalAvailableSlots = actualTimetableSlots.length;
 
   // CalendarDayから各曜日の出現回数を計算
   const calendarDaysForOccurrences = await prisma.calendarDay.findMany({

@@ -25,7 +25,7 @@ export async function GET(
 
   const calendarDay = await prisma.calendarDay.findFirst({
     where: { termId, date },
-    include: { daySlots: true },
+    include: { actualTimetableSlots: true },
   });
 
   if (!calendarDay) {
@@ -37,7 +37,7 @@ export async function GET(
       dayType: calendarDay.dayType,
       slotCount: calendarDay.slotCount,
       title: calendarDay.title,
-      daySlots: calendarDay.daySlots.map((slot) => ({
+      daySlots: calendarDay.actualTimetableSlots.map((slot) => ({
         daySlotIndex: slot.daySlotIndex,
         disabledReason: slot.disabledReason,
       })),
