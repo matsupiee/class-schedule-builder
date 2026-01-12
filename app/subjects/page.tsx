@@ -21,6 +21,16 @@ import { prisma } from "@/lib/prisma/prisma";
 
 export default async function SubjectsPage() {
   const subjects = await prisma.subject.findMany({
+    select: {
+      id: true,
+      name: true,
+      createdAt: true,
+      _count: {
+        select: {
+          subjectUnits: true,
+        },
+      },
+    },
     orderBy: { name: "asc" },
   });
 
@@ -50,6 +60,7 @@ export default async function SubjectsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>科目名</TableHead>
+                  <TableHead className="text-right">単元</TableHead>
                   <TableHead className="text-right">作成日</TableHead>
                 </TableRow>
               </TableHeader>
@@ -58,7 +69,7 @@ export default async function SubjectsPage() {
                   <TableRow>
                     <TableCell
                       className="text-muted-foreground text-center"
-                      colSpan={2}
+                      colSpan={3}
                     >
                       まだ科目が登録されていません。
                     </TableCell>
@@ -68,6 +79,13 @@ export default async function SubjectsPage() {
                     <TableRow key={subject.id}>
                       <TableCell className="font-medium">
                         {subject.name}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/subjects/${subject.id}/units`}>
+                            単元管理（{subject._count.subjectUnits}）
+                          </Link>
+                        </Button>
                       </TableCell>
                       <TableCell className="text-right text-sm text-muted-foreground">
                         {subject.createdAt.toLocaleDateString("ja-JP")}
