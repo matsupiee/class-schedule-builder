@@ -18,9 +18,8 @@ model Subject {
     createdAt DateTime @default(now())
     updatedAt DateTime @default(now()) @updatedAt
 
-    name          String // "国語"
+    name String // "国語"
 
-    timetablePlanSlots   TimetablePlanSlot[]
     requiredLessonCounts RequiredLessonCount[]
     fixedTimetableSlots  FixedTimetableSlot[]
 }
@@ -36,21 +35,20 @@ model Term {
     endsAt   DateTime // 終了日時
 
     requiredLessonCounts RequiredLessonCount[]
-    timetablePlans       TimetablePlan[]
     calendarDays         CalendarDay[]
     fixedTimetableSlots  FixedTimetableSlot[]
     weeklyDayRules       WeeklyDayRule[]
 }
 
 model WeeklyDayRule {
-  id        String   @id @default(cuid())
-  termId    String
-  weekday   Int     // 1=Mon .. 5=Fri
-  defaultSlotCount Int // 曜日ごとにコマ数がデフォルトで決まっている
+    id               String @id @default(cuid())
+    termId           String
+    weekday          Int // 1=Mon .. 5=Fri
+    defaultSlotCount Int // 曜日ごとにコマ数がデフォルトで決まっている
 
-  term      Term @relation(fields: [termId], references: [id])
+    term Term @relation(fields: [termId], references: [id])
 
-  @@unique([termId, weekday])
+    @@unique([termId, weekday])
 }
 
 enum DayType {
@@ -89,7 +87,7 @@ model DaySlot {
     // 授業として使えないコマの場合はここに値が入る
     disabledReason String?
 
-    calendarDay        CalendarDay         @relation(fields: [calendarDayId], references: [id])
+    calendarDay CalendarDay @relation(fields: [calendarDayId], references: [id])
 
     @@unique([calendarDayId, daySlotIndex])
 }
@@ -128,31 +126,4 @@ model FixedTimetableSlot {
     subject Subject @relation(fields: [subjectId], references: [id])
 
     @@unique([termId, weekday, daySlotIndex])
-}
-
-model TimetablePlan {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @default(now()) @updatedAt
-
-    termId String
-    name   String
-
-    term               Term                @relation(fields: [termId], references: [id])
-    timetablePlanSlots TimetablePlanSlot[]
-}
-
-model TimetablePlanSlot {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @default(now()) @updatedAt
-
-    timetablePlanId String
-    subjectId       String?
-     
-    weekday      Int // 1=Mon..7
-    daySlotIndex   Int
-
-    timeTablePlan TimetablePlan @relation(fields: [timetablePlanId], references: [id])
-    subject       Subject?       @relation(fields: [subjectId], references: [id])
 }

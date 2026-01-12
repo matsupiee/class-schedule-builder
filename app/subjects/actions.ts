@@ -73,4 +73,3 @@ export async function deleteSubject(formData: FormData) {
 
   revalidatePath("/subjects");
 }
-

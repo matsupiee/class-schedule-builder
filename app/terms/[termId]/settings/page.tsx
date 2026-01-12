@@ -9,10 +9,15 @@ import { SettingsClient } from "./_components/settings-client";
 
 type PageProps = {
   params: Promise<{ termId: string }>;
+  searchParams: Promise<{ section?: string }>;
 };
 
-export default async function TermSettingsPage({ params }: PageProps) {
+export default async function TermSettingsPage({ 
+  params,
+  searchParams,
+}: PageProps) {
   const { termId } = await params;
+  const { section } = await searchParams;
 
   const term = await prisma.term.findUnique({
     where: { id: termId },
@@ -63,53 +68,29 @@ export default async function TermSettingsPage({ params }: PageProps) {
   });
   const totalAvailableSlots = daySlots.length;
 
-  // Timetables section: reuse the list + auto create UI
-  const timetablePlansRaw = await prisma.timetablePlan.findMany({
-    where: { termId },
-    orderBy: { createdAt: "desc" },
-    include: {
-      timetablePlanSlots: {
-        include: { subject: true },
-      },
+  // CalendarDayから各曜日の出現回数を計算
+  const calendarDaysForOccurrences = await prisma.calendarDay.findMany({
+    where: {
+      termId,
+      dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
     },
   });
 
-  const timetablePlans = timetablePlansRaw.map((plan) => ({
-    id: plan.id,
-    name: plan.name,
-    createdAt: plan.createdAt,
-    timetablePlanSlots: plan.timetablePlanSlots
-      .filter(
-        (
-          slot
-        ): slot is typeof slot & {
-          subjectId: string;
-          subject: NonNullable<typeof slot.subject>;
-        } => slot.subjectId !== null && slot.subject !== null
-      )
-      .map((slot) => ({
-        subjectId: slot.subjectId,
-        subject: {
-          id: slot.subject.id,
-          name: slot.subject.name,
-        },
-      })),
-  }));
-
-  const planStats = timetablePlans.map((plan) => {
-    const subjectCounts = new Map<string, number>();
-    for (const slot of plan.timetablePlanSlots) {
-      const current = subjectCounts.get(slot.subjectId) ?? 0;
-      subjectCounts.set(slot.subjectId, current + 1);
+  const weekdayOccurrences: Record<number, number> = {};
+  for (const day of calendarDaysForOccurrences) {
+    const jsWeekday = day.date.getUTCDay(); // 0=日, 1=月, ...
+    if (jsWeekday >= 1 && jsWeekday <= 5) {
+      weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
     }
-    return {
-      planId: plan.id,
-      subjectCounts: Array.from(subjectCounts.entries()).map(([subjectId, count]) => ({
-        subjectId,
-        count,
-      })),
-    };
-  });
+  }
+
+  // 各科目の授業消化数を計算
+  const subjectCounts = new Map<string, number>();
+  for (const slot of fixedTimetableSlots) {
+    const occurrences = weekdayOccurrences[slot.weekday] ?? 0;
+    const current = subjectCounts.get(slot.subjectId) ?? 0;
+    subjectCounts.set(slot.subjectId, current + occurrences);
+  }
 
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
@@ -145,8 +126,13 @@ export default async function TermSettingsPage({ params }: PageProps) {
           totalAvailableSlots={totalAvailableSlots}
           fixedTimetableSlots={fixedTimetableSlots}
           weekdaySlotCounts={weekdaySlotCounts}
-          timetablePlans={timetablePlans}
-          planStats={planStats}
+          subjectCounts={Array.from(subjectCounts.entries()).map(
+            ([subjectId, count]) => ({
+              subjectId,
+              count,
+            })
+          )}
+          defaultOpenSection={section === "fixedTimetable" ? "fixedTimetable" : "calendar"}
         />
       </div>
     </main>

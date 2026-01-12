@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
-import { prisma } from "@/lib/prisma/prisma"
+import { prisma } from "@/lib/prisma/prisma";
 
 function toUtcDate(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map((value) => Number(value))
+  const [year, month, day] = dateValue.split("-").map((value) => Number(value));
   if (!year || !month || !day) {
-    return null
+    return null;
   }
-  return new Date(Date.UTC(year, month - 1, day))
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
 export async function GET(
@@ -15,21 +15,21 @@ export async function GET(
   { params }: { params: Promise<{ termId: string }> }
 ) {
   const { termId } = await params;
-  const url = new URL(_request.url)
-  const dateValue = url.searchParams.get("date") ?? ""
-  const date = toUtcDate(dateValue)
+  const url = new URL(_request.url);
+  const dateValue = url.searchParams.get("date") ?? "";
+  const date = toUtcDate(dateValue);
 
   if (!date) {
-    return NextResponse.json({ error: "invalid_date" }, { status: 400 })
+    return NextResponse.json({ error: "invalid_date" }, { status: 400 });
   }
 
   const calendarDay = await prisma.calendarDay.findFirst({
     where: { termId, date },
     include: { daySlots: true },
-  })
+  });
 
   if (!calendarDay) {
-    return NextResponse.json({ data: null })
+    return NextResponse.json({ data: null });
   }
 
   return NextResponse.json({
@@ -42,5 +42,5 @@ export async function GET(
         disabledReason: slot.disabledReason,
       })),
     },
-  })
+  });
 }

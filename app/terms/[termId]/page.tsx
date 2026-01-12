@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { prisma } from "@/lib/prisma/prisma"
+import { FixedTimetableComparison } from "./fixed-timetable/_components/fixed-timetable-comparison"
 
 function formatDate(date: Date) {
   const year = date.getFullYear()
@@ -60,20 +61,11 @@ export default async function TermDashboardPage({ params }: PageProps) {
     where: { termId },
   })
 
-  const timetablePlansCount = await prisma.timetablePlan.count({
+  // 固定時間割を取得
+  const fixedTimetableSlots = await prisma.fixedTimetableSlot.findMany({
     where: { termId },
-  })
-
-  // 最新の時間割プランを1つ取得
-  const latestTimetablePlan = await prisma.timetablePlan.findFirst({
-    where: { termId },
-    orderBy: { createdAt: "desc" },
     include: {
-      timetablePlanSlots: {
-        include: {
-          subject: true,
-        },
-      },
+      subject: true,
     },
   })
 
@@ -89,16 +81,17 @@ export default async function TermDashboardPage({ params }: PageProps) {
 
   const maxSlotCount = Math.max(...Object.values(weekdaySlotCounts), 0)
 
-  // 時間割スロットをマップに変換
-  const slotsMap = new Map<string, { subjectId: string | null; subject: { id: string; name: string } | null }>()
-  if (latestTimetablePlan) {
-    for (const slot of latestTimetablePlan.timetablePlanSlots) {
-      const key = `${slot.weekday}-${slot.daySlotIndex}`
-      slotsMap.set(key, {
-        subjectId: slot.subjectId,
-        subject: slot.subject,
-      })
-    }
+  // 固定時間割スロットをマップに変換
+  const slotsMap = new Map<string, { subjectId: string; subject: { id: string; name: string } }>()
+  for (const slot of fixedTimetableSlots) {
+    const key = `${slot.weekday}-${slot.daySlotIndex}`
+    slotsMap.set(key, {
+      subjectId: slot.subjectId,
+      subject: {
+        id: slot.subject.id,
+        name: slot.subject.name,
+      },
+    })
   }
 
   const weekdays = [
@@ -108,6 +101,38 @@ export default async function TermDashboardPage({ params }: PageProps) {
     { value: 4, label: "木" },
     { value: 5, label: "金" },
   ] as const
+
+  // CalendarDayから各曜日の出現回数を計算
+  const calendarDays = await prisma.calendarDay.findMany({
+    where: {
+      termId,
+      dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
+    },
+  })
+
+  const weekdayOccurrences: Record<number, number> = {}
+  for (const day of calendarDays) {
+    const jsWeekday = day.date.getUTCDay() // 0=日, 1=月, ...
+    if (jsWeekday >= 1 && jsWeekday <= 5) {
+      weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1
+    }
+  }
+
+  // 各科目の授業消化数を計算
+  const subjectCounts = new Map<string, number>()
+  for (const slot of fixedTimetableSlots) {
+    const occurrences = weekdayOccurrences[slot.weekday] ?? 0
+    const current = subjectCounts.get(slot.subjectId) ?? 0
+    subjectCounts.set(slot.subjectId, current + occurrences)
+  }
+
+  // 科目ごとの必要授業数を取得
+  const requiredLessonCounts = await prisma.requiredLessonCount.findMany({
+    where: { termId },
+    include: {
+      subject: true,
+    },
+  })
 
   return (
     <main className="min-h-screen bg-muted/30 px-6 py-10">
@@ -179,16 +204,6 @@ export default async function TermDashboardPage({ params }: PageProps) {
                   <span className="text-muted-foreground">未設定</span>
                 )}
               </div>
-              <div className="flex items-center justify-between">
-                <span>時間割作成</span>
-                {timetablePlansCount > 0 ? (
-                  <span className="text-green-600 font-medium">
-                    作成済み ({timetablePlansCount}件)
-                  </span>
-                ) : (
-                  <span className="text-muted-foreground">未作成</span>
-                )}
-              </div>
 
               <div className="mt-6 pt-6 border-t">
                 <Button asChild className="w-full">
@@ -199,20 +214,19 @@ export default async function TermDashboardPage({ params }: PageProps) {
           </Card>
         </div>
 
-        {latestTimetablePlan && (
+        {fixedTimetableSlotsCount > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>最新の時間割</CardTitle>
+                  <CardTitle>固定時間割</CardTitle>
                   <CardDescription>
-                    {latestTimetablePlan.name} -{" "}
-                    {latestTimetablePlan.createdAt.toLocaleDateString("ja-JP")}
+                    週次グリッドに設定された固定時間割を表示します。
                   </CardDescription>
                 </div>
                 <Button asChild variant="outline" size="sm">
-                  <Link href={`/terms/${term.id}/timetables/${latestTimetablePlan.id}`}>
-                    編集
+                  <Link href={`/terms/${term.id}/settings?section=fixedTimetable`}>
+                    設定
                   </Link>
                 </Button>
               </div>
@@ -241,7 +255,7 @@ export default async function TermDashboardPage({ params }: PageProps) {
                               const isDisabled =
                                 weekdaySlotCounts[weekday.value] === undefined ||
                                 slot > weekdaySlotCounts[weekday.value]
-                              const isSet = slotData && slotData.subject !== null
+                              const isSet = slotData !== undefined
 
                               return (
                                 <TableCell
@@ -279,16 +293,24 @@ export default async function TermDashboardPage({ params }: PageProps) {
                   まだスロットが設定されていません
                 </div>
               )}
-              <div className="mt-4">
-                <Button asChild variant="outline" className="w-full">
-                  <Link href={`/terms/${term.id}/timetables`}>
-                    時間割一覧を見る
-                  </Link>
-                </Button>
-              </div>
             </CardContent>
           </Card>
         )}
+
+        <FixedTimetableComparison
+          termId={term.id}
+          requiredLessonCounts={requiredLessonCounts.map((rlc) => ({
+            subjectId: rlc.subjectId,
+            subjectName: rlc.subject.name,
+            requiredCount: rlc.requiredCount,
+          }))}
+          subjectCounts={Array.from(subjectCounts.entries()).map(
+            ([subjectId, count]) => ({
+              subjectId,
+              count,
+            })
+          )}
+        />
       </div>
     </main>
   )

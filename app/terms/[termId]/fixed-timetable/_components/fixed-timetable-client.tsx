@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +30,8 @@ import {
 } from "@/components/ui/table";
 
 import {
+  autoGenerateFixedTimetable,
+  type AutoGenerateFixedTimetableState,
   deleteFixedTimetableSlot,
   saveFixedTimetableSlot,
 } from "../actions";
@@ -75,6 +78,23 @@ export function FixedTimetableClient({
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [name, setName] = useState("");
   const [note, setNote] = useState("");
+
+  const initialState: AutoGenerateFixedTimetableState = {
+    status: "idle",
+  };
+  const [autoGenerateState, autoGenerateAction] = useActionState(
+    autoGenerateFixedTimetable,
+    initialState
+  );
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (autoGenerateState.status === "success") {
+      toast.success("固定時間割を自動生成しました");
+    } else if (autoGenerateState.status === "error" && autoGenerateState.message) {
+      toast.error(autoGenerateState.message);
+    }
+  }, [autoGenerateState]);
 
   const fixedSlotsMap = useMemo(() => {
     const map = new Map<string, FixedTimetableSlot>();
@@ -162,14 +182,40 @@ export function FixedTimetableClient({
     return fixedSlotsMap.get(key);
   };
 
+  const handleAutoGenerate = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (
+      !confirm(
+        "既存の固定時間割がすべて削除され、自動生成された時間割で置き換えられます。よろしいですか？"
+      )
+    ) {
+      return;
+    }
+
+    const formData = new FormData(e.currentTarget);
+    startTransition(() => {
+      autoGenerateAction(formData);
+    });
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.4fr_0.6fr]">
       <Card>
         <CardHeader>
-          <CardTitle>週次グリッド</CardTitle>
-          <CardDescription>
-            曜日とコマごとの固定枠を設定します。セルをクリックして設定してください。
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>週次グリッド</CardTitle>
+              <CardDescription>
+                曜日とコマごとの固定枠を設定します。セルをクリックして設定してください。
+              </CardDescription>
+            </div>
+            <form onSubmit={handleAutoGenerate}>
+              <input type="hidden" name="termId" value={termId} />
+              <Button type="submit" variant="outline" disabled={isPending}>
+                {isPending ? "生成中..." : "自動生成"}
+              </Button>
+            </form>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <Table>

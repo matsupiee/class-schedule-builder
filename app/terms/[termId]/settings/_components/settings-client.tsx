@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TermCalendarClient } from "@/app/terms/[termId]/calendar/_components/term-calendar-client";
 import { RequirementsClient } from "@/app/terms/[termId]/requirements/_components/requirements-client";
 import { FixedTimetableClient } from "@/app/terms/[termId]/fixed-timetable/_components/fixed-timetable-client";
-import { TimetablesClient } from "@/app/terms/[termId]/timetables/_components/timetables-client";
+import { FixedTimetableComparison } from "@/app/terms/[termId]/fixed-timetable/_components/fixed-timetable-comparison";
 
 type Subject = {
   id: string;
@@ -22,31 +22,15 @@ type FixedTimetableSlot = {
   note: string | null;
 };
 
-type TimetablePlan = {
-  id: string;
-  name: string;
-  createdAt: Date;
-  timetablePlanSlots: Array<{
-    subjectId: string;
-    subject: {
-      id: string;
-      name: string;
-    };
-  }>;
-};
-
-type PlanStat = {
-  planId: string;
-  subjectCounts: Array<{
-    subjectId: string;
-    count: number;
-  }>;
-};
-
 type RequiredLessonCount = {
   subjectId: string;
   subjectName: string;
   requiredCount: number;
+};
+
+type SubjectCount = {
+  subjectId: string;
+  count: number;
 };
 
 type SettingsClientProps = {
@@ -61,9 +45,8 @@ type SettingsClientProps = {
 
   fixedTimetableSlots: FixedTimetableSlot[];
   weekdaySlotCounts: Record<number, number>;
-
-  timetablePlans: TimetablePlan[];
-  planStats: PlanStat[];
+  subjectCounts: SubjectCount[];
+  defaultOpenSection?: string;
 };
 
 export function SettingsClient({
@@ -76,8 +59,8 @@ export function SettingsClient({
   totalAvailableSlots,
   fixedTimetableSlots,
   weekdaySlotCounts,
-  timetablePlans,
-  planStats,
+  subjectCounts,
+  defaultOpenSection = "calendar",
 }: SettingsClientProps) {
   return (
     <Card>
@@ -85,7 +68,7 @@ export function SettingsClient({
         <CardTitle>設定</CardTitle>
       </CardHeader>
       <CardContent>
-        <Accordion type="multiple" defaultValue={["calendar"]}>
+        <Accordion type="multiple" defaultValue={[defaultOpenSection]}>
           <AccordionItem value="calendar">
             <AccordionTrigger>1. 授業日カレンダー</AccordionTrigger>
             <AccordionContent>
@@ -116,24 +99,19 @@ export function SettingsClient({
           <AccordionItem value="fixedTimetable">
             <AccordionTrigger>3. 固定時間割</AccordionTrigger>
             <AccordionContent>
-              <FixedTimetableClient
-                termId={termId}
-                subjects={subjects}
-                fixedTimetableSlots={fixedTimetableSlots}
-                weekdaySlotCounts={weekdaySlotCounts}
-              />
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="timetables">
-            <AccordionTrigger>4. 時間割作成・管理</AccordionTrigger>
-            <AccordionContent>
-              <TimetablesClient
-                termId={termId}
-                timetablePlans={timetablePlans}
-                requiredLessonCounts={requiredLessonCounts}
-                planStats={planStats}
-              />
+              <div className="space-y-6">
+                <FixedTimetableClient
+                  termId={termId}
+                  subjects={subjects}
+                  fixedTimetableSlots={fixedTimetableSlots}
+                  weekdaySlotCounts={weekdaySlotCounts}
+                />
+                <FixedTimetableComparison
+                  termId={termId}
+                  requiredLessonCounts={requiredLessonCounts}
+                  subjectCounts={subjectCounts}
+                />
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
