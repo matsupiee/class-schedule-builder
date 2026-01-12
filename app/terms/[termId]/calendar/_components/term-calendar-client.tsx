@@ -1,6 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useMemo, useState } from "react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -158,6 +159,7 @@ export function TermCalendarClient({
   // 保存成功時にデータを再取得
   useEffect(() => {
     if (state.status === "success") {
+      toast.success("保存されました")
       // 次のレンダリングサイクルで更新
       const timer = setTimeout(() => {
         setRefreshKey((prev) => prev + 1)
@@ -241,36 +243,38 @@ export function TermCalendarClient({
                 </Select>
               </div>
 
-              <div className="grid gap-3">
-                <div className="flex items-center justify-between">
-                  <Label>個別コマの無効化</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {slotCount} コマ中 {disabledSlots.size} コマ無効
-                  </span>
+              {dayType !== "HOLIDAY" && (
+                <div className="grid gap-3">
+                  <div className="flex items-center justify-between">
+                    <Label>個別コマの無効化</Label>
+                    <span className="text-xs text-muted-foreground">
+                      {slotCount} コマ中 {disabledSlots.size} コマ無効
+                    </span>
+                  </div>
+                  <div className="grid gap-2">
+                    {slotList.map((slot) => {
+                      const checked = !disabledSlots.has(slot)
+                      return (
+                        <label
+                          key={slot}
+                          className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+                        >
+                          <span>{slot} 限</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {checked ? "有効" : "無効"}
+                            </span>
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={() => toggleSlot(slot)}
+                            />
+                          </div>
+                        </label>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="grid gap-2">
-                  {slotList.map((slot) => {
-                    const checked = !disabledSlots.has(slot)
-                    return (
-                      <label
-                        key={slot}
-                        className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-                      >
-                        <span>{slot} 限</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
-                            {checked ? "有効" : "無効"}
-                          </span>
-                          <Checkbox
-                            checked={checked}
-                            onCheckedChange={() => toggleSlot(slot)}
-                          />
-                        </div>
-                      </label>
-                    )
-                  })}
-                </div>
-              </div>
+              )}
 
               <div className="grid gap-2">
                 <Label htmlFor="day-title">行事名・備考</Label>
