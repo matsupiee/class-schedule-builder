@@ -12,17 +12,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
-    "types": ["@cloudflare/workers-types", "vite/client"],
-    "paths": {
-      "@/*": ["./*"]
-    }
+    "incremental": true
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mts",
-    "worker-configuration.d.ts"
-  ],
   "exclude": ["node_modules", ".output", ".wrangler", "dist", "generated"]
 }
