@@ -54,7 +54,7 @@ pnpm db:apply:remote
 2. `pnpm deploy`
 
 ```bash
-pnpm deploy             # vite build → wrangler deploy
+pnpm run deploy             # vite build → wrangler deploy
 ```
 
 ## ディレクトリ構成

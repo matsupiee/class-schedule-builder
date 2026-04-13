@@ -6,5 +6,5 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "class_schedule_builder_db"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
+database_id = "529cb5fe-da6b-4a22-8d3c-1548b78df605"
 migrations_dir = "lib/prisma/migrations"
