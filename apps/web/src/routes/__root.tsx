@@ -5,7 +5,11 @@ import {
   Scripts,
   createRootRoute,
 } from "@tanstack/react-router";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/shared/app-sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import appCss from "@/src/styles/app.css?url";
@@ -32,6 +36,9 @@ function RootComponent() {
         <SidebarProvider>
           <AppSidebar />
           <SidebarInset>
+            <header className="flex h-12 items-center gap-2 border-b px-4">
+              <SidebarTrigger />
+            </header>
             <Outlet />
           </SidebarInset>
         </SidebarProvider>
