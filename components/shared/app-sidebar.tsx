@@ -1,7 +1,4 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouterState } from "@tanstack/react-router";
 import { Calendar, BookOpen } from "lucide-react";
 import {
   Sidebar,
@@ -18,7 +15,7 @@ import {
 } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
-  const pathname = usePathname();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
     <Sidebar>
@@ -38,10 +35,10 @@ export function AppSidebar() {
                   asChild
                   isActive={pathname.startsWith("/terms")}
                 >
-                  <Link href="/terms">
+                  <a href="/terms">
                     <Calendar />
                     <span>学期</span>
-                  </Link>
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
@@ -49,10 +46,10 @@ export function AppSidebar() {
                   asChild
                   isActive={pathname.startsWith("/subjects")}
                 >
-                  <Link href="/subjects">
+                  <a href="/subjects">
                     <BookOpen />
                     <span>科目</span>
-                  </Link>
+                  </a>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -63,5 +60,3 @@ export function AppSidebar() {
     </Sidebar>
   );
 }
-
-
