@@ -1,0 +1,10 @@
+name = "class-schedule-builder"
+main = "src/server.ts"
+compatibility_date = "2025-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "class_schedule_builder_db"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "lib/prisma/migrations"

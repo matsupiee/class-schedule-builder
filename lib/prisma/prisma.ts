@@ -1,22 +1,8 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaD1 } from "@prisma/adapter-d1";
 
-// @see https://www.prisma.io/docs/guides/nextjs#26-set-up-prisma-client
-
-const globalForPrisma = global as unknown as {
-  prisma: PrismaClient;
-};
-
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL,
-});
-
-export const prisma =
-  globalForPrisma.prisma ||
-  new PrismaClient({
-    adapter,
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+export function createPrismaClient(d1: D1Database) {
+  return new PrismaClient({ adapter: new PrismaD1(d1) });
 }
+
+export type AppPrismaClient = ReturnType<typeof createPrismaClient>;
