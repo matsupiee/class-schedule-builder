@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
     "cf-typegen": "wrangler types ./worker-configuration.d.ts",
     "prisma:generate": "prisma generate",
     "db:diff": "prisma migrate diff --from-empty --to-schema lib/prisma/schema.prisma --script",
@@ -72,6 +73,7 @@
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.31.2",
+    "@cloudflare/vitest-pool-workers": "^0.14.3",
     "@cloudflare/workers-types": "^4.20251101.0",
     "@tailwindcss/postcss": "^4",
     "@tailwindcss/vite": "^4",
@@ -80,6 +82,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.0.0",
+    "miniflare": "4.20260409.0",
     "prisma": "^7.2.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.2",
@@ -87,6 +90,7 @@
     "typescript": "^5",
     "vite": "^7.0.0",
     "vite-tsconfig-paths": "^5.1.0",
+    "vitest": "^4.1.4",
     "wrangler": "^4.30.0"
   }
 }

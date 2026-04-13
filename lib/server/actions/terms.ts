@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import * as holidayJp from "@holiday-jp/holiday_jp";
+import { nanoid } from "nanoid";
 import { getDb } from "@/lib/server/db";
+import type { AppPrismaClient } from "@/lib/prisma/prisma";
 
 const MS_IN_DAY = 24 * 60 * 60 * 1000;
 
@@ -62,8 +64,7 @@ function buildCalendarDays(
   return days;
 }
 
-export const listTerms = createServerFn({ method: "GET" }).handler(async () => {
-  const db = getDb();
+export async function listTermsImpl(db: AppPrismaClient) {
   const terms = await db.term.findMany({ orderBy: { startsAt: "asc" } });
   return terms.map((t) => ({
     id: t.id,
@@ -71,7 +72,68 @@ export const listTerms = createServerFn({ method: "GET" }).handler(async () => {
     startsAtIso: t.startsAt.toISOString(),
     endsAtIso: t.endsAt.toISOString(),
   }));
+}
+
+export const listTerms = createServerFn({ method: "GET" }).handler(async () => {
+  return listTermsImpl(getDb());
 });
+
+export interface CreateTermInput {
+  name: string;
+  startsAt: Date;
+  endsAt: Date;
+  counts: Record<number, number>;
+}
+
+export async function createTermImpl(
+  db: AppPrismaClient,
+  data: CreateTermInput,
+) {
+  const termId = nanoid();
+  const weeklyDayRulesData = [1, 2, 3, 4, 5].map((weekday) => ({
+    termId,
+    weekday,
+    defaultSlotCount: data.counts[weekday],
+  }));
+  const calendarDaysData = buildCalendarDays(
+    termId,
+    data.startsAt,
+    data.endsAt,
+    data.counts,
+  ).map((cd) => ({ ...cd, id: nanoid() }));
+  const actualTimetableSlotsData = calendarDaysData.flatMap((cd) =>
+    cd.slotCount > 0
+      ? Array.from({ length: cd.slotCount }, (_, index) => ({
+          termId,
+          calendarDayId: cd.id,
+          daySlotIndex: index + 1,
+          disabledReason: null,
+          subjectId: null,
+          subjectUnitId: null,
+          unitSlotIndex: null,
+        }))
+      : [],
+  );
+  const ops = [
+    db.term.create({
+      data: {
+        id: termId,
+        name: data.name,
+        startsAt: data.startsAt,
+        endsAt: data.endsAt,
+      },
+    }),
+    db.weeklyDayRule.createMany({ data: weeklyDayRulesData }),
+    db.calendarDay.createMany({ data: calendarDaysData }),
+  ];
+  if (actualTimetableSlotsData.length > 0) {
+    ops.push(
+      db.actualTimetableSlot.createMany({ data: actualTimetableSlotsData }),
+    );
+  }
+  await db.$transaction(ops);
+  return { termId };
+}
 
 export const createTerm = createServerFn({ method: "POST" })
   .inputValidator(
@@ -107,42 +169,91 @@ export const createTerm = createServerFn({ method: "POST" })
     },
   )
   .handler(async ({ data }) => {
-    const db = getDb();
-    await db.$transaction(async (tx) => {
-      const term = await tx.term.create({
-        data: { name: data.name, startsAt: data.startsAt, endsAt: data.endsAt },
-      });
-      await tx.weeklyDayRule.createMany({
-        data: [1, 2, 3, 4, 5].map((weekday) => ({
-          termId: term.id,
-          weekday,
-          defaultSlotCount: data.counts[weekday],
-        })),
-      });
-      const calendarDays = buildCalendarDays(
-        term.id,
-        data.startsAt,
-        data.endsAt,
-        data.counts,
-      );
-      for (const calendarDay of calendarDays) {
-        const created = await tx.calendarDay.create({ data: calendarDay });
-        if (calendarDay.slotCount > 0) {
-          await tx.actualTimetableSlot.createMany({
-            data: Array.from({ length: calendarDay.slotCount }, (_, index) => ({
-              termId: term.id,
-              calendarDayId: created.id,
-              daySlotIndex: index + 1,
-              disabledReason: null,
-              subjectId: null,
-              subjectUnitId: null,
-              unitSlotIndex: null,
-            })),
-          });
-        }
-      }
-    });
+    await createTermImpl(getDb(), data);
   });
+
+export async function getTermDashboardImpl(
+  db: AppPrismaClient,
+  data: { termId: string },
+) {
+  const term = await db.term.findUnique({ where: { id: data.termId } });
+  if (!term) return null;
+  const [
+    calendarDaysCount,
+    requiredLessonCountsCount,
+    fixedTimetableSlotsCount,
+    fixedTimetableSlots,
+    weeklyDayRules,
+    calendarDays,
+    requiredLessonCounts,
+  ] = await Promise.all([
+    db.calendarDay.count({ where: { termId: data.termId } }),
+    db.requiredLessonCount.count({ where: { termId: data.termId } }),
+    db.fixedTimetableSlot.count({ where: { termId: data.termId } }),
+    db.fixedTimetableSlot.findMany({
+      where: { termId: data.termId },
+      include: { subject: true },
+    }),
+    db.weeklyDayRule.findMany({ where: { termId: data.termId } }),
+    db.calendarDay.findMany({
+      where: {
+        termId: data.termId,
+        dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
+      },
+    }),
+    db.requiredLessonCount.findMany({
+      where: { termId: data.termId },
+      include: { subject: true },
+    }),
+  ]);
+  const weekdaySlotCounts: Record<number, number> = {};
+  for (const rule of weeklyDayRules) {
+    weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount;
+  }
+  const weekdayOccurrences: Record<number, number> = {};
+  for (const day of calendarDays) {
+    const jsWeekday = day.date.getUTCDay();
+    if (jsWeekday >= 1 && jsWeekday <= 5) {
+      weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
+    }
+  }
+  const subjectCounts = new Map<string, number>();
+  for (const slot of fixedTimetableSlots) {
+    const occ = weekdayOccurrences[slot.weekday] ?? 0;
+    subjectCounts.set(
+      slot.subjectId,
+      (subjectCounts.get(slot.subjectId) ?? 0) + occ,
+    );
+  }
+  return {
+    term: {
+      id: term.id,
+      name: term.name,
+      startsAtIso: term.startsAt.toISOString(),
+      endsAtIso: term.endsAt.toISOString(),
+    },
+    calendarDaysCount,
+    requiredLessonCountsCount,
+    fixedTimetableSlotsCount,
+    fixedTimetableSlots: fixedTimetableSlots.map((s) => ({
+      weekday: s.weekday,
+      daySlotIndex: s.daySlotIndex,
+      subjectId: s.subjectId,
+      subject: { id: s.subject.id, name: s.subject.name },
+      name: s.name,
+      note: s.note,
+    })),
+    weekdaySlotCounts,
+    requiredLessonCounts: requiredLessonCounts.map((rlc) => ({
+      subjectId: rlc.subjectId,
+      subjectName: rlc.subject.name,
+      requiredCount: rlc.requiredCount,
+    })),
+    subjectCounts: Array.from(subjectCounts.entries()).map(
+      ([subjectId, count]) => ({ subjectId, count }),
+    ),
+  };
+}
 
 export const getTermDashboard = createServerFn({ method: "GET" })
   .inputValidator((data: { termId: string }) => {
@@ -151,85 +262,107 @@ export const getTermDashboard = createServerFn({ method: "GET" })
     return { termId };
   })
   .handler(async ({ data }) => {
-    const db = getDb();
-    const term = await db.term.findUnique({ where: { id: data.termId } });
-    if (!term) return null;
-    const [
-      calendarDaysCount,
-      requiredLessonCountsCount,
-      fixedTimetableSlotsCount,
-      fixedTimetableSlots,
-      weeklyDayRules,
-      calendarDays,
-      requiredLessonCounts,
-    ] = await Promise.all([
-      db.calendarDay.count({ where: { termId: data.termId } }),
-      db.requiredLessonCount.count({ where: { termId: data.termId } }),
-      db.fixedTimetableSlot.count({ where: { termId: data.termId } }),
-      db.fixedTimetableSlot.findMany({
-        where: { termId: data.termId },
-        include: { subject: true },
-      }),
-      db.weeklyDayRule.findMany({ where: { termId: data.termId } }),
-      db.calendarDay.findMany({
-        where: {
-          termId: data.termId,
-          dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
-        },
-      }),
-      db.requiredLessonCount.findMany({
-        where: { termId: data.termId },
-        include: { subject: true },
-      }),
-    ]);
-    const weekdaySlotCounts: Record<number, number> = {};
-    for (const rule of weeklyDayRules) {
-      weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount;
-    }
-    const weekdayOccurrences: Record<number, number> = {};
-    for (const day of calendarDays) {
-      const jsWeekday = day.date.getUTCDay();
-      if (jsWeekday >= 1 && jsWeekday <= 5) {
-        weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
-      }
-    }
-    const subjectCounts = new Map<string, number>();
-    for (const slot of fixedTimetableSlots) {
-      const occ = weekdayOccurrences[slot.weekday] ?? 0;
-      subjectCounts.set(
-        slot.subjectId,
-        (subjectCounts.get(slot.subjectId) ?? 0) + occ,
-      );
-    }
-    return {
-      term: {
-        id: term.id,
-        name: term.name,
-        startsAtIso: term.startsAt.toISOString(),
-        endsAtIso: term.endsAt.toISOString(),
-      },
-      calendarDaysCount,
-      requiredLessonCountsCount,
-      fixedTimetableSlotsCount,
-      fixedTimetableSlots: fixedTimetableSlots.map((s) => ({
-        weekday: s.weekday,
-        daySlotIndex: s.daySlotIndex,
-        subjectId: s.subjectId,
-        subject: { id: s.subject.id, name: s.subject.name },
-        name: s.name,
-        note: s.note,
-      })),
-      weekdaySlotCounts,
-      requiredLessonCounts: requiredLessonCounts.map((rlc) => ({
-        subjectId: rlc.subjectId,
-        subjectName: rlc.subject.name,
-        requiredCount: rlc.requiredCount,
-      })),
-      subjectCounts: Array.from(subjectCounts.entries()).map(
-        ([subjectId, count]) => ({ subjectId, count }),
-      ),
-    };
+    return getTermDashboardImpl(getDb(), data);
   });
+
+export async function getTermSettingsImpl(
+  db: AppPrismaClient,
+  data: { termId: string },
+) {
+  const term = await db.term.findUnique({ where: { id: data.termId } });
+  if (!term) return null;
+  const [
+    calendarDays,
+    subjects,
+    requiredLessonCounts,
+    weeklyDayRules,
+    fixedTimetableSlots,
+    actualTimetableSlots,
+    calendarDaysForOcc,
+  ] = await Promise.all([
+    db.calendarDay.findMany({
+      where: { termId: data.termId },
+      select: { date: true, title: true, dayType: true },
+    }),
+    db.subject.findMany({ orderBy: { name: "asc" } }),
+    db.requiredLessonCount.findMany({
+      where: { termId: data.termId },
+      include: { subject: true },
+    }),
+    db.weeklyDayRule.findMany({
+      where: { termId: data.termId },
+      orderBy: { weekday: "asc" },
+    }),
+    db.fixedTimetableSlot.findMany({
+      where: { termId: data.termId },
+      include: { subject: true },
+    }),
+    db.actualTimetableSlot.findMany({
+      where: {
+        termId: data.termId,
+        calendarDay: { dayType: { in: ["NORMAL", "SCHOOL_EVENT"] } },
+        disabledReason: null,
+      },
+    }),
+    db.calendarDay.findMany({
+      where: {
+        termId: data.termId,
+        dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
+      },
+    }),
+  ]);
+  const weekdaySlotCounts: Record<number, number> = {};
+  for (const rule of weeklyDayRules) {
+    weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount;
+  }
+  const weekdayOccurrences: Record<number, number> = {};
+  for (const day of calendarDaysForOcc) {
+    const jsWeekday = day.date.getUTCDay();
+    if (jsWeekday >= 1 && jsWeekday <= 5) {
+      weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
+    }
+  }
+  const subjectCounts = new Map<string, number>();
+  for (const slot of fixedTimetableSlots) {
+    const occ = weekdayOccurrences[slot.weekday] ?? 0;
+    subjectCounts.set(
+      slot.subjectId,
+      (subjectCounts.get(slot.subjectId) ?? 0) + occ,
+    );
+  }
+  return {
+    term: {
+      id: term.id,
+      name: term.name,
+      startsAtIso: term.startsAt.toISOString(),
+      endsAtIso: term.endsAt.toISOString(),
+    },
+    calendarDays: calendarDays.map((d) => ({
+      date: d.date.toISOString(),
+      title: d.title,
+      dayType: d.dayType,
+    })),
+    subjects: subjects.map((s) => ({ id: s.id, name: s.name })),
+    requiredLessonCounts: requiredLessonCounts.map((rlc) => ({
+      subjectId: rlc.subjectId,
+      subjectName: rlc.subject.name,
+      requiredCount: rlc.requiredCount,
+    })),
+    totalAvailableSlots: actualTimetableSlots.length,
+    fixedTimetableSlots: fixedTimetableSlots.map((s) => ({
+      weekday: s.weekday,
+      daySlotIndex: s.daySlotIndex,
+      subjectId: s.subjectId,
+      subject: { id: s.subject.id, name: s.subject.name },
+      name: s.name,
+      note: s.note,
+    })),
+    weekdaySlotCounts,
+    subjectCounts: Array.from(subjectCounts.entries()).map(
+      ([subjectId, count]) => ({ subjectId, count }),
+    ),
+  };
+}
 
 export const getTermSettings = createServerFn({ method: "GET" })
   .inputValidator((data: { termId: string }) => {
@@ -238,98 +371,5 @@ export const getTermSettings = createServerFn({ method: "GET" })
     return { termId };
   })
   .handler(async ({ data }) => {
-    const db = getDb();
-    const term = await db.term.findUnique({ where: { id: data.termId } });
-    if (!term) return null;
-    const [
-      calendarDays,
-      subjects,
-      requiredLessonCounts,
-      weeklyDayRules,
-      fixedTimetableSlots,
-      actualTimetableSlots,
-      calendarDaysForOcc,
-    ] = await Promise.all([
-      db.calendarDay.findMany({
-        where: { termId: data.termId },
-        select: { date: true, title: true, dayType: true },
-      }),
-      db.subject.findMany({ orderBy: { name: "asc" } }),
-      db.requiredLessonCount.findMany({
-        where: { termId: data.termId },
-        include: { subject: true },
-      }),
-      db.weeklyDayRule.findMany({
-        where: { termId: data.termId },
-        orderBy: { weekday: "asc" },
-      }),
-      db.fixedTimetableSlot.findMany({
-        where: { termId: data.termId },
-        include: { subject: true },
-      }),
-      db.actualTimetableSlot.findMany({
-        where: {
-          termId: data.termId,
-          calendarDay: { dayType: { in: ["NORMAL", "SCHOOL_EVENT"] } },
-          disabledReason: null,
-        },
-      }),
-      db.calendarDay.findMany({
-        where: {
-          termId: data.termId,
-          dayType: { in: ["NORMAL", "SCHOOL_EVENT"] },
-        },
-      }),
-    ]);
-    const weekdaySlotCounts: Record<number, number> = {};
-    for (const rule of weeklyDayRules) {
-      weekdaySlotCounts[rule.weekday] = rule.defaultSlotCount;
-    }
-    const weekdayOccurrences: Record<number, number> = {};
-    for (const day of calendarDaysForOcc) {
-      const jsWeekday = day.date.getUTCDay();
-      if (jsWeekday >= 1 && jsWeekday <= 5) {
-        weekdayOccurrences[jsWeekday] = (weekdayOccurrences[jsWeekday] ?? 0) + 1;
-      }
-    }
-    const subjectCounts = new Map<string, number>();
-    for (const slot of fixedTimetableSlots) {
-      const occ = weekdayOccurrences[slot.weekday] ?? 0;
-      subjectCounts.set(
-        slot.subjectId,
-        (subjectCounts.get(slot.subjectId) ?? 0) + occ,
-      );
-    }
-    return {
-      term: {
-        id: term.id,
-        name: term.name,
-        startsAtIso: term.startsAt.toISOString(),
-        endsAtIso: term.endsAt.toISOString(),
-      },
-      calendarDays: calendarDays.map((d) => ({
-        date: d.date.toISOString(),
-        title: d.title,
-        dayType: d.dayType,
-      })),
-      subjects: subjects.map((s) => ({ id: s.id, name: s.name })),
-      requiredLessonCounts: requiredLessonCounts.map((rlc) => ({
-        subjectId: rlc.subjectId,
-        subjectName: rlc.subject.name,
-        requiredCount: rlc.requiredCount,
-      })),
-      totalAvailableSlots: actualTimetableSlots.length,
-      fixedTimetableSlots: fixedTimetableSlots.map((s) => ({
-        weekday: s.weekday,
-        daySlotIndex: s.daySlotIndex,
-        subjectId: s.subjectId,
-        subject: { id: s.subject.id, name: s.subject.name },
-        name: s.name,
-        note: s.note,
-      })),
-      weekdaySlotCounts,
-      subjectCounts: Array.from(subjectCounts.entries()).map(
-        ([subjectId, count]) => ({ subjectId, count }),
-      ),
-    };
+    return getTermSettingsImpl(getDb(), data);
   });
