@@ -1,7 +1,7 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
-/node_modules
+node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -11,13 +11,14 @@
 !.yarn/versions
 
 # testing
-/coverage
+coverage
 
 # build outputs
-/dist
-/.output
-/.wrangler
-/build
+dist
+.output
+.wrangler
+build
+.turbo
 
 # misc
 .DS_Store
@@ -36,8 +37,9 @@ yarn-error.log*
 *.tsbuildinfo
 
 # tanstack router
-src/routeTree.gen.ts
+**/routeTree.gen.ts
 
 docker
 
+# prisma
 generated

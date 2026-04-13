@@ -1,0 +1,25 @@
+{
+  "name": "@packages/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./generated/prisma/client.ts"
+  },
+  "scripts": {
+    "prisma:generate": "prisma generate",
+    "db:diff": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script",
+    "db:migrate:new": "mkdir -p prisma/migrations && pnpm --silent db:diff > prisma/migrations/$(date +%Y%m%d%H%M%S)_init.sql",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/adapter-d1": "^7.2.0",
+    "@prisma/client": "^7.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251101.0",
+    "prisma": "^7.2.0",
+    "typescript": "^5"
+  }
+}
