@@ -9,7 +9,11 @@ export default defineConfig({
   plugins: [
     tsconfigPaths(),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        routeFileIgnorePattern: "(^|/)_[^/]+/",
+      },
+    }),
     viteReact(),
     cloudflare({ viteEnvironment: { name: "ssr" } }),
   ],

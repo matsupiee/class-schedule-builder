@@ -9,10 +9,10 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/shared/app-sidebar";
-import { Toaster } from "@/components/ui/sonner";
-import appCss from "@/src/styles/app.css?url";
+} from "@/shared/_components/ui-parts/sidebar";
+import { AppSidebar } from "@/routes/_components/app-sidebar";
+import { Toaster } from "@/shared/_components/ui-parts/sonner";
+import appCss from "@/styles/app.css?url";
 
 export const Route = createRootRoute({
   head: () => ({

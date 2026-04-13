@@ -1,8 +1,8 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ChevronLeftIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { SettingsClient } from "@/src/components/terms/settings-client";
+import { Button } from "@/shared/_components/ui-parts/button";
+import { SettingsClient } from "@/routes/terms/$termId/_components/settings-client";
 import { getTermSettings } from "@packages/api/actions/terms";
 
 type SearchParams = { section?: string };
