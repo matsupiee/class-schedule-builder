@@ -6,9 +6,9 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { SubjectUnitsClient } from "@/src/components/subjects/subject-units-client";
+} from "@/shared/_components/ui-parts/card";
+import { Button } from "@/shared/_components/ui-parts/button";
+import { SubjectUnitsClient } from "@/routes/subjects/$subjectId/_components/subject-units-client";
 import { getSubjectWithUnits } from "@packages/api/actions/subject-units";
 
 export const Route = createFileRoute("/subjects/$subjectId/units")({

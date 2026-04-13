@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/_components/ui-parts/card";
 import {
   Table,
   TableBody,
@@ -15,9 +15,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { SubjectCreateDialog } from "@/src/components/subjects/subject-create-dialog";
+} from "@/shared/_components/ui-parts/table";
+import { Button } from "@/shared/_components/ui-parts/button";
+import { SubjectCreateDialog } from "@/shared/_components/subject-create-dialog";
 import { listSubjects } from "@packages/api/actions/subjects";
 
 export const Route = createFileRoute("/subjects/")({

@@ -1,14 +1,14 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ChevronLeftIcon } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/_components/ui-parts/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/_components/ui-parts/card";
 import {
   Table,
   TableBody,
@@ -16,8 +16,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { FixedTimetableComparison } from "@/src/components/terms/fixed-timetable/fixed-timetable-comparison";
+} from "@/shared/_components/ui-parts/table";
+import { FixedTimetableComparison } from "@/routes/terms/$termId/_components/fixed-timetable/fixed-timetable-comparison";
 import { getTermDashboard } from "@packages/api/actions/terms";
 
 export const Route = createFileRoute("/terms/$termId/")({

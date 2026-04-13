@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/shared/_components/ui-parts/card";
 import {
   Table,
   TableBody,
@@ -15,8 +15,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { TermCreateDialog } from "@/src/components/terms/term-create-dialog";
+} from "@/shared/_components/ui-parts/table";
+import { TermCreateDialog } from "@/routes/terms/_components/term-create-dialog";
 import { listTerms } from "@packages/api/actions/terms";
 
 export const Route = createFileRoute("/terms/")({
