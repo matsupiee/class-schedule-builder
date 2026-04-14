@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     tanstackStart({
       router: {
-        routeFileIgnorePattern: "(^|/)_[^/]+/",
+        routeFileIgnorePattern: "(^|/)_[^/]+/|\\.test\\.",
       },
     }),
     viteReact(),
